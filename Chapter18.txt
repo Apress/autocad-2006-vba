@@ -1,0 +1,207 @@
+Public Declare Function SetForegroundWindow Lib "user32.dll" _
+  (ByVal hwnd As Long) As Long
+
+Public Type POINTS
+  x As Integer
+  y As Integer
+End Type
+
+Public Declare Function SetForegroundWindow Lib "user32.dll" _
+    (ByVal hwnd As Long) As Long
+
+Private Declare Function SetWindowText Lib "user32" Alias _
+"SetWindowTextA" (ByVal hwnd As Long, ByVal lpString As String) _
+As Long 
+
+Declare Function InvertRect Lib "user32" Alias "InvertRectA" _
+(ByVal hdc As Long, lpRect As RECT) As Long
+
+Private Declare Function GetOpenFileName Lib "comdlg32.dll" Alias _
+"GetOpenFileNameA" (pOpenfilename As OPENFILENAME) As Long
+Private Type OPENFILENAME
+  lStructSize As Long
+  hwndOwner As Long
+  hInstance As Long
+  lpstrFilter As String
+  lpstrCustomFilter As String
+  nMaxCustFilter As Long
+  nFilterIndex As Long
+  lpstrFile As String
+  nMaxFile As Long
+  lpstrFileTitle As String
+  nMaxFileTitle As Long
+  lpstrInitialDir As String
+  lpstrTitle As String
+  flags As Long
+  nFileOffset As Integer
+  nFileExtension As Integer
+  lpstrDefExt As String
+  lCustData As Long
+  lpfnHook As Long
+  lpTemplateName As String
+End Type
+
+Public Function ShowOpen(Filter As String, _
+                         InitialDir As String, _
+                         DialogTitle As String) As String
+                         
+Dim OFName As OPENFILENAME
+  
+  'Set the structure size
+  OFName.lStructSize = Len(OFName)
+  'Set the owner window
+  OFName.hwndOwner = 0
+  'Set the filter
+  OFName.lpstrFilter = Filter
+  'Set the maximum number of chars
+  OFName.nMaxFile = 255
+  'Create a buffer
+  OFName.lpstrFile = Space(254)
+  'Create a buffer
+  OFName.lpstrFileTitle = Space$(254)
+  'Set the maximum number of chars
+  OFName.nMaxFileTitle = 255
+  'Set the initial directory
+  OFName.lpstrInitialDir = InitialDir
+  'Set the dialog title
+  OFName.lpstrTitle = DialogTitle
+  'no extra flags
+  OFName.flags = 0
+  'Show the 'Open File’ dialog
+  If GetOpenFileName(OFName) Then
+    ShowOpen = Trim(OFName.lpstrFile)
+    
+    Else
+      ShowOpen = ""
+  End If
+End Function
+
+Dim Filter As String
+Dim InitialDir As String
+Dim DialogTitle As String
+Dim OutputStr As String
+
+  Filter = "Drawing Files (*.dwg)" + Chr$(0) + "*.dwg" + Chr$(0) + _
+    "All Files (*.*)" + Chr$(0) + "*.*" + Chr$(0)
+  InitialDir = "C:\Program Files\AutoCAD 2006\Sample"
+  DialogTitle = "Open a DWG file"
+  
+  OutputStr = ShowOpen(Filter, InitialDir, DialogTitle)
+  MsgBox OutputStr
+
+Private Declare Function GetSaveFileName Lib "comdlg32.dll" Alias _
+"GetSaveFileNameA" (pOpenfilename As OPENFILENAME) As Long
+
+
+Private Type OPENFILENAME
+  lStructSize As Long
+  hwndOwner As Long
+  hInstance As Long
+  lpstrFilter As String
+  lpstrCustomFilter As String
+  nMaxCustFilter As Long
+  nFilterIndex As Long
+  lpstrFile As String
+  nMaxFile As Long
+  lpstrFileTitle As String
+  nMaxFileTitle As Long
+  lpstrInitialDir As String
+  lpstrTitle As String
+  flags As Long
+  nFileOffset As Integer
+  nFileExtension As Integer
+  lpstrDefExt As String
+  lCustData As Long
+  lpfnHook As Long
+  lpTemplateName As String
+End Type
+
+Public Function ShowSave(Filter As String, _
+                         InitialDir As String, _
+                         DialogTitle As String) As String
+                         
+Dim OFName As OPENFILENAME
+  
+  'Set the structure size
+  OFName.lStructSize = Len(OFName)
+  'Set the owner window
+  OFName.hwndOwner = 0
+  'Set the filter
+  OFName.lpstrFilter = Filter
+  'Set the maximum number of chars
+  OFName.nMaxFile = 255
+  'Create a buffer
+  OFName.lpstrFile = Space(254)
+  'Create a buffer
+  OFName.lpstrFileTitle = Space$(254)
+  'Set the maximum number of chars
+  OFName.nMaxFileTitle = 255
+  'Set the initial directory
+  OFName.lpstrInitialDir = InitialDir
+  'Set the dialog title
+  OFName.lpstrTitle = DialogTitle
+  'no extra flags
+  OFName.flags = 0
+  'Show the 'SaveAs File’ dialog
+  If GetSaveFileName(OFName) Then
+    ShowSave = Trim(OFName.lpstrFile)
+    
+    Else
+      ShowSave = ""
+  End If
+End Function
+
+Dim Filter As String
+Dim InitialDir As String
+Dim DialogTitle As String
+Dim OutputStr As String
+
+  Filter = "Drawing Files (*.dwg)" + Chr$(0) + "*.dwg" + Chr$(0) + _
+    "All Files (*.*)" + Chr$(0) + "*.*" + Chr$(0)
+  InitialDir = "C:\Program Files\AutoCAD 2006\Sample"
+  DialogTitle = "Save DWG as file"
+  
+  OutputStr = ShowSave(Filter, InitialDir, DialogTitle)
+  MsgBox OutputStr
+
+Private Const VK_CAPITAL = &H14
+Private Const VK_NUMLOCK = &H90
+Private Const VK_SCROLL = &H91
+
+Private Type KeyboardBytes
+  kbByte(0 To 255) As Byte
+End Type
+
+Private Declare Function GetKeyState Lib "user32" (ByVal nVirtKey As Long) _
+  As Long
+Private Declare Function GetKeyboardState Lib "user32" (kbArray As KeyboardBytes) _  
+  As Long
+Private Declare Function SetKeyboardState Lib "user32" (kbArray As KeyboardBytes) _  
+  As Long
+
+Dim kbArray As KeyboardBytes
+
+Public Sub TurnOn(vkKey As Long)
+  'Get the keyboard state
+  GetKeyboardState kbArray
+  'Change a key
+  kbArray.kbByte(vkKey) = 1
+  'Set the keyboard state
+  SetKeyboardState kbArray
+End Sub
+
+Public Sub TurnOff(vkKey As Long)
+  'Get the keyboard state
+  GetKeyboardState kbArray
+  'change a key
+  kbArray.kbByte(vkKey) = 0
+  'set the keyboard state
+  SetKeyboardState kbArray
+End Sub
+
+Public Function GetKeyStatus(vkKey As Long) As Boolean
+  'Get the keyboard state
+  GetKeyboardState kbArray
+  'change a key
+  GetKeyStatus = kbArray.kbByte(vkKey)
+End Function

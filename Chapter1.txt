@@ -1,0 +1,17 @@
+Private Sub TextBox1_Change()
+  If Len(TextBox1.Text) > 0 Then
+    CommandButton1.Enabled = True
+    
+    Else
+      CommandButton1.Enabled = False
+  End If
+End Sub
+
+Public Sub Start()
+  Application.ActiveDocument.SetVariable "OSMODE", 35
+End Sub
+
+(defun-q Startup ()
+  (command "-vbarun" "Start")
+)
+(setq S::STARTUP (append S::STARTUP Startup))

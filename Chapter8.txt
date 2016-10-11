@@ -1,0 +1,577 @@
+If ThisDrawing.ActiveSpace = acModelSpace Then
+    MsgBox "The active space is model space"
+Else
+    MsgBox "The active space is paper space"
+End If
+
+Public Sub ToggleSpace()
+    With ThisDrawing
+        If .ActiveSpace = acModelSpace Then
+            .ActiveSpace = acPaperSpace
+        Else
+            .ActiveSpace = acModelSpace
+        End If
+    End With
+End Sub
+
+ThisDrawing.ActiveSpace = (ThisDrawing.ActiveSpace + 1) Mod 2
+
+Public Sub TestAddArc()
+Dim varCenter As Variant
+Dim dblRadius As Double
+Dim dblStart As Double
+Dim dblEnd As Double
+Dim objEnt As AcadArc
+      
+    On Error Resume Next
+    '' get input from user
+    With ThisDrawing.Utility
+        varCenter = .GetPoint(, vbCr & "Pick the center point: ")
+        dblRadius = .GetDistance(varCenter, vbCr & "Enter the radius: ")
+        dblStart = .GetAngle(varCenter, vbCr & "Enter the start angle: ")
+        dblEnd = .GetAngle(varCenter, vbCr & "Enter the end angle: ")
+    End With
+      
+    '' draw the arc
+If ThisDrawing.ActiveSpace = acModelSpace Then
+    Set objEnt = ThisDrawing.ModelSpace.AddArc(varCenter, dblRadius, _
+                                               dblStart, dblEnd)
+Else
+Set objEnt = ThisDrawing.PaperSpace.AddArc(varCenter, dblRadius, dblStart, dblEnd)
+End If
+    objEnt.Update
+End Sub
+
+Public Sub TestAddCircle()
+Dim varCenter As Variant
+Dim dblRadius As Double
+Dim objEnt As AcadCircle
+      
+On Error Resume Next
+    '' get input from user
+    With ThisDrawing.Utility
+        varCenter = .GetPoint(, vbCr & "Pick the centerpoint: ")
+        dblRadius = .GetDistance(varCenter, vbCr & "Enter the radius: ")
+    End With
+      
+    '' draw the entity
+If ThisDrawing.ActiveSpace = acModelSpace Then
+  Set objEnt = ThisDrawing.ModelSpace.AddCircle(varCenter, dblRadius)
+Else
+  Set objEnt = ThisDrawing.PaperSpace.AddCircle(varCenter, dblRadius)
+End If
+    objEnt.Update
+End Sub
+
+Public Sub TestAddEllipse()
+Dim dblCenter(0 To 2) As Double
+Dim dblMajor(0 To 2) As Double
+Dim dblRatio As Double
+Dim dblStart As Double
+Dim dblEnd As Double
+Dim objEnt As AcadEllipse
+
+On Error Resume Next
+      
+    '' setup the ellipse parameters
+    dblCenter(0) = 0: dblCenter(1) = 0: dblCenter(2) = 0
+    dblMajor(0) = 10: dblMajor(1) = 0: dblMajor(2) = 0
+    dblRatio = 0.5
+     
+    '' draw the ellipse
+If ThisDrawing.ActiveSpace = acModelSpace Then
+  Set objEnt = ThisDrawing.ModelSpace.AddEllipse(dblCenter, dblMajor, dblRatio)
+Else
+  Set objEnt = ThisDrawing.PaperSpace.AddEllipse(dblCenter, dblMajor, dblRatio)
+End If
+    objEnt.Update
+    
+    '' get angular input from user
+    With ThisDrawing.Utility
+        dblStart = .GetAngle(dblCenter, vbCr & "Enter the start angle: ")
+        dblEnd = .GetAngle(dblCenter, vbCr & "Enter the end angle: ")
+    End With
+      
+    '' convert the ellipse into elliptical arc
+With objEnt
+    .StartAngle = dblStart
+    .EndAngle = dblEnd
+    .Update
+End With
+End Sub
+
+Public Sub TestAddLine()
+Dim varStart As Variant
+Dim varEnd As Variant
+Dim objEnt As AcadLine
+
+On Error Resume Next
+    '' get input from user
+    With ThisDrawing.Utility
+        varStart = .GetPoint(, vbCr & "Pick the start point: ")
+        varEnd = .GetPoint(varStart, vbCr & "Pick the end point: ")
+    End With
+      
+    '' draw the entity
+If ThisDrawing.ActiveSpace = acModelSpace Then
+  Set objEnt = ThisDrawing.ModelSpace.AddLine(varStart, varEnd)
+Else
+  Set objEnt = ThisDrawing.PaperSpace.AddLine(varStart, varEnd)
+End If
+    objEnt.Update
+End Sub
+
+Public Sub TestAddLWPolyline()
+Dim objEnt As AcadLWPolyline
+Dim dblVertices() As Double
+
+    '' setup initial points
+    ReDim dblVertices(11)
+    dblVertices(0) = 0#: dblVertices(1) = 0#
+    dblVertices(2) = 10#: dblVertices(3) = 0#
+    dblVertices(4) = 10#: dblVertices(5) = 10#
+    dblVertices(6) = 5#: dblVertices(7) = 5#
+    dblVertices(8) = 2#: dblVertices(9) = 2#
+    dblVertices(10) = 0#: dblVertices(11) = 10#
+      
+    '' draw the entity
+If ThisDrawing.ActiveSpace = acModelSpace Then
+  Set objEnt = ThisDrawing.ModelSpace.AddLightWeightPolyline(dblVertices)
+Else
+  Set objEnt = ThisDrawing.PaperSpace.AddLightWeightPolyline(dblVertices)
+End If
+    objEnt.Closed = True
+    objEnt.Update
+End Sub
+
+Public Sub TestAddVertex()
+    On Error Resume Next
+    Dim objEnt As AcadLWPolyline
+    Dim dblNew(0 To 1) As Double
+    Dim lngLastVertex As Long
+    Dim varPick As Variant
+    Dim varWCS As Variant
+    
+    With ThisDrawing.Utility
+        
+        '' get entity from user
+        .GetEntity objEnt, varPick, vbCr & "Pick a polyline <exit>: "
+        
+        '' exit if no pick
+        If objEnt Is Nothing Then Exit Sub
+        
+        '' exit if not a lwpolyline
+        If objEnt.ObjectName <> "AcDbPolyline" Then
+            MsgBox "You did not pick a polyline"
+            Exit Sub
+        End If
+        
+        '' copy last vertex of pline into pickpoint to begin loop
+        ReDim varPick(2)
+        varPick(0) = objEnt.Coordinates(UBound(objEnt.Coordinates) - 1)
+        varPick(1) = objEnt.Coordinates(UBound(objEnt.Coordinates))
+        varPick(2) = 0
+        
+        '' append vertexes in a loop
+        Do
+            '' translate picked point to UCS for basepoint below
+            varWCS = .TranslateCoordinates(varPick, acWorld, acUCS, True)
+            
+            '' get user point for new vertex, use last pick as basepoint
+            varPick = .GetPoint(varWCS, vbCr & "Pick another point <exit>: ")
+            
+            '' exit loop if no point picked
+            If Err Then Exit Do
+            
+            '' copy picked point X and Y into new 2d point
+            dblNew(0) = varPick(0):  dblNew(1) = varPick(1)
+            
+            '' get last vertex offset.  it is one half the array size
+            lngLastVertex = (UBound(objEnt.Coordinates) + 1) / 2
+            
+            '' add new vertex to pline at last offset
+            objEnt.AddVertex lngLastVertex, dblNew
+        Loop
+    End With
+    objEnt.Update
+End Sub
+
+Public Sub TestAddMLine()
+Dim objEnt As AcadMLine
+Dim dblVertices(17) As Double
+
+    '' setup initial points
+    dblVertices(0) = 0: dblVertices(1) = 0: dblVertices(2) = 0
+    dblVertices(3) = 10: dblVertices(4) = 0: dblVertices(5) = 0
+    dblVertices(6) = 10: dblVertices(7) = 10: dblVertices(8) = 0
+    dblVertices(9) = 5: dblVertices(10) = 10: dblVertices(11) = 0
+    dblVertices(12) = 5: dblVertices(13) = 5: dblVertices(14) = 0
+    dblVertices(15) = 0: dblVertices(16) = 5: dblVertices(17) = 0
+
+    '' draw the entity
+If ThisDrawing.ActiveSpace = acModelSpace Then
+  Set objEnt = ThisDrawing.ModelSpace.AddMLine(dblVertices)
+Else
+  Set objEnt = ThisDrawing.PaperSpace.AddMLine(dblVertices)
+End If
+    objEnt.Update
+End Sub
+
+Public Sub TestAddPolyline()
+Dim objEnt As AcadPolyline
+Dim dblVertices(17) As Double
+
+    '' setup initial points
+    dblVertices(0) = 0: dblVertices(1) = 0: dblVertices(2) = 0
+    dblVertices(3) = 10: dblVertices(4) = 0: dblVertices(5) = 0
+    dblVertices(6) = 7: dblVertices(7) = 10: dblVertices(8) = 0
+    dblVertices(9) = 5: dblVertices(10) = 7: dblVertices(11) = 0
+    dblVertices(12) = 6: dblVertices(13) = 2: dblVertices(14) = 0
+    dblVertices(15) = 0: dblVertices(16) = 4: dblVertices(17) = 0
+
+    '' draw the entity
+If ThisDrawing.ActiveSpace = acModelSpace Then
+  Set objEnt = ThisDrawing.ModelSpace.AddPolyline(dblVertices)
+Else
+  Set objEnt = ThisDrawing.PaperSpace.AddPolyline(dblVertices)
+End If
+    objEnt.Type = acFitCurvePoly
+    objEnt.Closed = True
+    objEnt.Update
+End Sub
+
+Public Sub TestPolylineType()
+Dim objEnt As AcadPolyline
+Dim varPick As Variant
+Dim strType As String
+Dim intType As Integer
+
+On Error Resume Next
+    
+    With ThisDrawing.Utility
+        .GetEntity objEnt, varPick, vbCr & "Pick a polyline: "
+        If Err Then
+            MsgBox "That is not a Polyline"
+            Exit Sub
+        End If
+    
+        .InitializeUserInput 1, "Simple Fit Quad Cubic"
+        strType = .GetKeyword(vbCr & "Change type [Simple/Fit/Quad/Cubic]: ")
+                
+        Select Case strType
+            Case "Simple": intType = acSimplePoly
+            Case "Fit": intType = acFitCurvePoly
+            Case "Quad": intType = acQuadSplinePoly
+            Case "Cubic": intType = acCubicSplinePoly
+        End Select
+    End With
+
+    objEnt.Type = intType
+    objEnt.Closed = True
+    objEnt.Update
+End Sub
+
+Public Sub TestAddBulge()
+Dim objEnt As AcadPolyline
+Dim dblVertices(17) As Double
+
+    '' setup initial points
+    dblVertices(0) = 0: dblVertices(1) = 0: dblVertices(2) = 0
+    dblVertices(3) = 10: dblVertices(4) = 0: dblVertices(5) = 0
+    dblVertices(6) = 7: dblVertices(7) = 10: dblVertices(8) = 0
+    dblVertices(9) = 5: dblVertices(10) = 7: dblVertices(11) = 0
+    dblVertices(12) = 6: dblVertices(13) = 2: dblVertices(14) = 0
+    dblVertices(15) = 0: dblVertices(16) = 4: dblVertices(17) = 0
+
+    '' draw the entity
+If ThisDrawing.ActiveSpace = acModelSpace Then
+  Set objEnt = ThisDrawing.ModelSpace.AddPolyline(dblVertices)
+Else
+  Set objEnt = ThisDrawing.PaperSpace.AddPolyline(dblVertices)
+End If
+    objEnt.Type = acSimplePoly
+    'add bulge to the fourth segment
+    objEnt.SetBulge 3, 0.5
+    objEnt.Update
+End Sub
+
+Public Sub TestAddRay()
+Dim varStart As Variant
+Dim varEnd As Variant
+Dim objEnt As AcadRay
+
+On Error Resume Next
+    '' get input from user
+    With ThisDrawing.Utility
+        varStart = .GetPoint(, vbCr & "Pick the start point: ")
+        varEnd = .GetPoint(varStart, vbCr & "Indicate a direction: ")
+    End With
+      
+    '' draw the entity
+If ThisDrawing.ActiveSpace = acModelSpace Then
+  Set objEnt = ThisDrawing.ModelSpace.AddRay(varStart, varEnd)
+Else
+  Set objEnt = ThisDrawing.PaperSpace.AddRay(varStart, varEnd)
+End If
+    objEnt.Update
+End Sub
+
+Public Sub TestAddSpline()
+Dim objEnt As AcadSpline
+Dim dblBegin(0 To 2) As Double
+Dim dblEnd(0 To 2) As Double
+Dim dblPoints(14) As Double
+    
+    '' set tangencies
+    dblBegin(0) = 1.5:   dblBegin(1) = 0#:   dblBegin(2) = 0
+    dblEnd(0) = 1.5:  dblEnd(1) = 0#:  dblEnd(2) = 0
+    
+    '' set the fit dblPoints
+    dblPoints(0) = 0: dblPoints(1) = 0: dblPoints(2) = 0
+    dblPoints(3) = 3: dblPoints(4) = 5: dblPoints(5) = 0
+    dblPoints(6) = 5: dblPoints(7) = 0: dblPoints(8) = 0
+    dblPoints(9) = 7: dblPoints(10) = -5: dblPoints(11) = 0
+    dblPoints(12) = 10: dblPoints(13) = 0: dblPoints(14) = 0
+      
+    '' draw the entity
+If ThisDrawing.ActiveSpace = acModelSpace Then
+  Set objEnt = ThisDrawing.ModelSpace.AddSpline(dblPoints, dblBegin, dblEnd)
+Else
+  Set objEnt = ThisDrawing.PaperSpace.AddSpline(dblPoints, dblBegin, dblEnd)
+End If
+    objEnt.Update
+End Sub
+
+Public Sub TestAddXline()
+Dim varStart As Variant
+Dim varEnd As Variant
+Dim objEnt As AcadXline
+
+On Error Resume Next
+    '' get input from user
+    With ThisDrawing.Utility
+        varStart = .GetPoint(, vbCr & "Pick the start point: ")
+        varEnd = .GetPoint(varStart, vbCr & "Indicate an angle: ")
+    End With
+      
+    '' draw the entity
+If ThisDrawing.ActiveSpace = acModelSpace Then
+  Set objEnt = ThisDrawing.ModelSpace.AddXline(varStart, varEnd)
+Else
+  Set objEnt = ThisDrawing.PaperSpace.AddXline(varStart, varEnd)
+End If
+    objEnt.Update
+End Sub
+
+Public Sub TestAddHatch()
+Dim varCenter As Variant
+Dim dblRadius As Double
+Dim dblAngle As Double
+Dim objEnt As AcadHatch
+Dim varOuter() As AcadEntity
+Dim varInner() As AcadEntity
+
+On Error Resume Next
+    '' get input from user
+    With ThisDrawing.Utility
+        varCenter = .GetPoint(, vbCr & "Pick the center point: ")
+        dblRadius = .GetDistance(varCenter, vbCr & "Indicate the radius: ")
+        dblAngle = .AngleToReal("180", acDegrees)
+    End With
+    
+    '' draw the entities    With ThisDrawing.ModelSpace
+    
+        '' draw the Outer loop (circle)
+        ReDim varOuter(0)
+        Set varOuter(0) = .AddCircle(varCenter, dblRadius)
+        
+        '' draw then Inner loop (semicircle)
+        ReDim varInner(1)
+        Set varInner(0) = .AddArc(varCenter, dblRadius * 0.5, 0, dblAngle)
+        Set varInner(1) = .AddLine(varInner(0).StartPoint, _
+                                   varInner(0).EndPoint)
+        
+        '' create the Hatch object
+        Set objEnt = .AddHatch(acHatchPatternTypePreDefined, "ANSI31", True)
+    
+        '' append boundaries to the hatch
+        objEnt.AppendOuterLoop varOuter
+        objEnt.AppendInnerLoop varInner
+        
+        '' evaluate and display hatched boundaries
+        objEnt.Evaluate
+        objEnt.Update
+    End With
+End Sub
+
+Public Sub TestAddMText()
+Dim varStart As Variant
+Dim dblWidth As Double
+Dim strText As String
+Dim objEnt As AcadMText
+    
+On Error Resume Next
+    '' get input from user
+    With ThisDrawing.Utility
+        varStart = .GetPoint(, vbCr & "Pick the start point: ")
+        dblWidth = .GetDistance(varStart, vbCr & "Indicate the width: ")
+        strText = .GetString(True, vbCr & "Enter the text: ")
+    End With
+    
+    '' add font and size formatting
+    strText = "\Fromand.shx;\H0.5;" & strText
+        
+    '' create the mtext
+
+    Set objEnt = ThisDrawing.ModelSpace.AddMText(varStart, dblWidth, strText)
+    objEnt.Update
+End Sub
+
+Public Sub TestAddPoint()
+Dim objEnt As AcadPoint
+Dim varPick As Variant
+Dim strType As String
+Dim intType As Integer
+Dim dblSize As Double
+    
+On Error Resume Next
+    
+    With ThisDrawing.Utility
+        '' get the pdmode center type
+        .InitializeUserInput 1, "Dot None Cross X Tick"
+        strType = .GetKeyword(vbCr & "Center type [Dot/None/Cross/X/Tick]: ")
+        If Err Then Exit Sub
+        
+        Select Case strType
+            Case "Dot": intType = 0
+            Case "None": intType = 1
+            Case "Cross": intType = 2
+            Case "X": intType = 3
+            Case "Tick": intType = 4
+        End Select
+        
+        '' get the pdmode surrounding type
+        .InitializeUserInput 1, "Circle Square Both"
+        strType = .GetKeyword(vbCr & "Outer type [Circle/Square/Both]: ")
+        If Err Then Exit Sub
+        
+        Select Case strType
+            Case "Circle": intType = intType + 32
+            Case "Square": intType = intType + 64
+            Case "Both": intType = intType + 96
+        End Select
+        
+        '' get the pdsize
+        .InitializeUserInput 1, ""
+        dblSize = .GetDistance(, vbCr & "Enter a point size: ")
+        If Err Then Exit Sub
+        
+        '' set the system varibles
+        With ThisDrawing
+        .SetVariable "PDMODE", intType
+        .SetVariable "PDSIZE", dblSize
+        End With
+        '' now add points in a loop
+        Do
+            '' get user point for new vertex, use last pick as basepoint
+            varPick = .GetPoint(, vbCr & "Pick a point <exit>: ")
+            
+            '' exit loop if no point picked
+            If Err Then Exit Do
+            
+            '' add new vertex to pline at last offset
+
+            ThisDrawing.ModelSpace.AddPoint varPick
+        Loop
+    End With
+End Sub
+
+Public Sub TestAddRegion()
+Dim varCenter As Variant
+Dim varMove As Variant
+Dim dblRadius As Double
+Dim dblAngle As Double
+Dim varRegions As Variant
+Dim objEnts() As AcadEntity
+    
+    On Error Resume Next
+    '' get input from user
+    With ThisDrawing.Utility
+        varCenter = .GetPoint(, vbCr & "Pick the center point: ")
+        dblRadius = .GetDistance(varCenter, vbCr & "Indicate the radius: ")
+        dblAngle = .AngleToReal("180", acDegrees)
+    End With
+    
+    '' draw the entities
+    With ThisDrawing.ModelSpace
+    
+        '' draw the outer region (circle)
+        ReDim objEnts(2)
+        Set objEnts(0) = .AddCircle(varCenter, dblRadius)
+        
+        '' draw the inner region (semicircle)
+        Set objEnts(1) = .AddArc(varCenter, dblRadius * 0.5, 0, dblAngle)
+        Set objEnts(2) = .AddLine(objEnts(1).StartPoint, objEnts(1).EndPoint)
+        
+        '' create the regions
+        varRegions = .AddRegion(objEnts)
+    End With
+    
+    '' get new position from user
+        varMove = ThisDrawing.Utility.GetPoint(varCenter, vbCr & _
+                                               "Pick a new location: ")
+    
+    '' subtract the inner region from the outer
+    varRegions(1).Boolean acSubtraction, varRegions(0)
+    
+    '' move the composite region to a new location
+    varRegions(1).Move varCenter, varMove
+End Sub
+
+Public Sub TestAddSolid()
+Dim varP1 As Variant
+Dim varP2 As Variant
+Dim varP3 As Variant
+Dim varP4 As Variant
+Dim objEnt As AcadSolid
+      
+On Error Resume Next
+    '' ensure that solid fill is enabled
+    ThisDrawing.SetVariable "FILLMODE", 1
+    
+    '' get input from user
+    With ThisDrawing.Utility
+        varP1 = .GetPoint(, vbCr & "Pick the start point: ")
+        varP2 = .GetPoint(varP1, vbCr & "Pick the second point: ")
+        varP3 = .GetPoint(varP1, vbCr & "Pick a point opposite the start: ")
+        varP4 = .GetPoint(varP3, vbCr & "Pick the last point: ")
+    End With
+      
+    '' draw the entity
+
+    Set objEnt = ThisDrawing.ModelSpace.AddSolid(varP1, varP2, varP3, varP4)
+    objEnt.Update
+End Sub
+
+Public Sub TestAddText()
+Dim varStart As Variant
+Dim dblHeight As Double
+Dim strText As String
+Dim objEnt As AcadText
+    
+On Error Resume Next
+    '' get input from user
+    With ThisDrawing.Utility
+        varStart = .GetPoint(, vbCr & "Pick the start point: ")
+        dblHeight = .GetDistance(varStart, vbCr & "Indicate the height: ")
+        strText = .GetString(True, vbCr & "Enter the text: ")
+    End With
+    
+    '' create the text
+If ThisDrawing.ActiveSpace = acModelSpace Then
+  Set objEnt = ThisDrawing.ModelSpace.AddText(strText, varStart, dblHeight)
+Else
+  Set objEnt = ThisDrawing.PaperSpace.AddText(strText, varStart, dblHeight)
+End If
+    objEnt.Update
+End Sub

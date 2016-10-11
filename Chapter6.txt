@@ -1,0 +1,384 @@
+Dim objLayers As AcadLayers
+Set objLayers = ThisDrawing.Layers
+
+Dim objLayer As AcadLayer
+
+Set objLayer = objLayers.Item(2)
+Set objLayer = objLayers.Item("My Layer")
+
+Public Sub ListLayers()
+    Dim objLayer As AcadLayer
+
+    For Each objLayer In ThisDrawing.Layers
+        Debug.Print objLayer.Name
+    Next
+End Sub
+
+Public Sub ListLayersManually()
+    Dim objLayers As AcadLayers
+    Dim objLayer As AcadLayer
+    Dim intI As Integer
+
+    Set objLayers = ThisDrawing.Layers
+
+    For intI = 0 To objLayers.Count - 1
+        Set objLayer = objLayers(intI)
+        Debug.Print objLayer.name
+    Next
+End Sub
+
+Public Sub ListLayersBackwards()
+    Dim objLayers As AcadLayers
+    Dim objLayer As AcadLayer
+    Dim intI As Integer
+
+   Set objLayers = ThisDrawing.Layers
+
+   For intI = objLayers.Count - 1 To 0 Step -1
+       Set objLayer = objLayers(intI)
+       Debug.Print objLayer.name
+   Next
+End Sub
+
+Public Sub CheckForLayerByIteration()
+    Dim objLayer As AcadLayer
+    Dim strLayerName As String
+
+    strLayername = InputBox("Enter a Layer name to search for: ")
+    If "" = strLayername Then Exit Sub    ' exit if no name entered
+ 
+    For Each objLayer In ThisDrawing.Layers    ' iterate layers 
+        If 0 = StrComp(objLayer.name, strLayername, vbTextCompare) Then
+            MsgBox "Layer '" & strLayername & "' exists"
+            Exit Sub                           ' exit after finding layer
+        End If
+    Next objLayer
+    MsgBox "Layer '" & strLayername & "' does not exist"
+End Sub
+
+Public Sub CheckForLayerByException()
+    Dim strLayerName As String
+    Dim objLayer As AcadLayer
+    
+    strLayerName = InputBox("Enter a Layer name to search for: ")
+    If "" = strLayerName Then Exit Sub      ' exit if no name entered
+    
+    On Error Resume Next               ' handle exceptions inline
+    Set objLayer = ThisDrawing.Layers(strLayerName)
+        
+    If objLayer Is Nothing Then        ' check if obj has been set
+        MsgBox "Layer '" & strLayerName & "' does not exist"
+    Else
+        MsgBox "Layer '" & objLayer.Name & "' exists"
+    End If
+End Sub
+
+Public Sub AddLayer()
+    Dim strLayerName As String
+    Dim objLayer As AcadLayer
+    
+    strLayerName = InputBox("Name of Layer to add: ")
+    If "" = strLayerName Then Exit Sub      ' exit if no name entered
+    
+    On Error Resume Next               ' handle exceptions inline
+    'check to see if layer already exists
+    Set objLayer = ThisDrawing.Layers(strLayerName)
+        
+    If objLayer Is Nothing Then
+        Set objLayer = ThisDrawing.Layers.Add(strLayerName)
+        If objLayer Is Nothing Then ' check if obj has been set
+            MsgBox "Unable to Add '" & strLayerName & "'"
+        Else
+            MsgBox "Added Layer '" & objLayer.Name & "'"
+        End If
+    Else
+        MsgBox "Layer already existed"
+    End If
+End Sub
+
+ThisDrawing.ActiveLayer = ThisDrawing.Layers("Walls")
+
+Public Sub ChangeEntityLayer()
+    On Error Resume Next                   ' handle exceptions inline
+    Dim objEntity As AcadEntity
+    Dim varPick As Variant
+    Dim strLayerName As String
+    Dim objLayer As AcadLayer
+    
+    ThisDrawing.Utility.GetEntity objEntity, varPick, "Select an entity"
+    If objEntity Is Nothing Then
+        MsgBox "No entity was selected"
+        Exit Sub  ' exit if no entity picked
+    End If
+    
+    strLayerName = InputBox("Enter a new Layer name: ")
+    If "" = strLayerName Then Exit Sub          ' exit if no name entered
+    
+    Set objLayer = ThisDrawing.Layers(strLayerName)
+    If objLayer Is Nothing Then
+        MsgBox "Layer was not recognized"
+        Exit Sub   ' exit if layer not found
+    End If
+    objEntity.Layer = strLayerName              ' else change entity layer
+End Sub
+
+If ThisDrawing.ActiveLayer.Name = "Walls" Then ...
+
+Public Function IsLayerActive(strLayerName As String) As Boolean
+    IsLayerActive = False          'assume failure
+    If 0 = StrComp(ThisDrawing.ActiveLayer.Name, strLayerName, _
+                   vbTextCompare) Then
+        IsLayerActive = True
+    End If
+End Function
+
+Public Sub LayerActive()
+    Dim strLayerName As String
+    strLayerName = InputBox("Name of the Layer to check: ")
+    
+    If IsLayerActive(strLayerName) Then
+        MsgBox "'" & strLayerName & "' is active"
+    Else
+        MsgBox "'" & strLayerName & "' is not active"
+    End If
+End Sub
+
+Public Sub ShowOnlyLayer()
+    On Error Resume Next                   ' handle exceptions inline
+    Dim strLayerName As String
+    Dim objLayer As AcadLayer
+    
+    strLayerName = InputBox("Enter a Layer name to show: ")
+    If "" = strLayerName Then Exit Sub          ' exit if no name entered
+  
+    For Each objLayer In ThisDrawing.Layers
+        objLayer.LayerOn = False           ' turn off all the layers
+    Next objLayer
+    
+    Set objLayer = ThisDrawing.Layers(strLayerName)
+    If objLayer Is Nothing Then
+        MsgBox "Layer does not exist"
+        Exit Sub   ' exit if layer not found
+    End If
+    
+    objLayer.LayerOn = True                ' turn on the desired layer
+End Sub
+
+Public Sub RenameLayer()
+    On Error Resume Next                   ' handle exceptions inline
+    Dim strLayerName As String
+    Dim objLayer As AcadLayer
+    
+    strLayerName = InputBox("Original Layer name: ")
+    If "" = strLayerName Then Exit Sub          ' exit if no old name
+    
+    Set objLayer = ThisDrawing.Layers(strLayerName)
+    If objLayer Is Nothing Then            ' exit if not found
+        MsgBox "Layer '" & strLayerName & "' not found"
+        Exit Sub
+    End If
+    
+    strLayerName = InputBox("New Layer name: ")
+    If "" = strLayerName Then Exit Sub          ' exit if no new name
+    
+    objLayer.Name = strLayerName                ' try and change name
+    If Err Then                            ' check if it worked
+        MsgBox "Unable to rename layer: " & vbCr & Err.Description
+    Else
+        MsgBox "Layer renamed to '" & strLayerName & "'"
+    End If
+End Sub
+
+Public Sub DeleteLayer()
+    On Error Resume Next                   ' handle exceptions inline
+    Dim strLayerName As String
+    Dim objLayer As AcadLayer
+    
+    strLayerName = InputBox("Layer name to delete: ")
+    If "" = strLayerName Then Exit Sub          ' exit if no old name
+
+    Set objLayer = ThisDrawing.Layers(strLayerName)
+    If objLayer Is Nothing Then            ' exit if not found
+        MsgBox "Layer '" & strLayerName & "' not found"
+        Exit Sub
+    End If
+
+    objLayer.Delete                        ' try to delete it
+    If Err Then                            ' check if it worked
+        MsgBox "Unable to delete layer: " & vbCr & Err.Description
+    Else
+        MsgBox "Layer '" & strLayerName & "' deleted"
+    End If
+End Sub
+
+Dim objLayer As AcadLayer
+Dim strLayerHandle As String
+
+Set objLayer = ThisDrawing.Layers("0")
+strLayerHandle = objLayer.Handle
+
+Public Sub Layer0Linetype()
+Dim objLayer As AcadLayer
+Dim strLayerLinetype As String
+
+    Set objLayer = ThisDrawing.Layers("0")
+    objLayer.Linetype = "Continuous"
+    strLayerLinetype = objLayer.Linetype
+
+End Sub
+
+Public Sub GetLwt()
+    Dim objLayer As AcadLayer
+    Dim lwtLweight As Integer
+    Set objLayer = ThisDrawing.ActiveLayer
+    lwtLweight = objLayer.Lineweight
+    Debug.Print "Lineweight is " & lwtLweight
+End Sub
+
+Public Sub CheckForLinetypeByIteration()
+    Dim objLinetype As AcadLineType
+    Dim strLinetypeName As String
+
+    strLinetypeName = InputBox("Enter a Linetype name to search for: ")
+    If "" = strLinetypeName Then Exit Sub         ' exit if no name entered
+ 
+    For Each objLinetype In ThisDrawing.Linetypes
+        If 0 = StrComp(objLinetype.Name, strLinetypeName, vbTextCompare) Then
+            MsgBox "Linetype '" & strLinetypeName & "' exists"
+            Exit Sub                           ' exit after finding linetype
+        End If
+    Next objLinetype
+
+    MsgBox "Linetype '" & strLinetypeName & "' does not exist"
+End Sub
+
+Public Sub CheckForLinetypeByException()
+    Dim strLinetypeName As String
+    Dim objLinetype As AcadLineType
+    
+    strLinetypeName = InputBox("Enter a Linetype name to search for: ")
+    If "" = strLinetypeName Then Exit Sub      ' exit if no name entered
+    
+    On Error Resume Next               ' handle exceptions inline
+    Set objLinetype = ThisDrawing.Linetypes(strLinetypeName)
+        
+    If objLinetype Is Nothing Then     ' check if obj has been set
+        MsgBox "Linetype '" & strLinetypeName & "' does not exist"
+    Else
+        MsgBox "Linetype '" & objLinetype.Name & "' exists"
+    End If
+End Sub
+
+Public Sub LoadLinetype()
+    Dim strLinetypeName As String
+    Dim objLinetype As AcadLineType
+    
+    strLinetypeName = InputBox("Enter a Linetype name" & _
+                               " to load from ACAD.LIN: ")
+    If "" = strLinetypeName Then Exit Sub      ' exit if no name entered
+    
+    On Error Resume Next               ' handle exceptions inline
+    ThisDrawing.Linetypes.Load strLinetypeName, "acad.lin"
+        
+    If Err Then                        ' check if err was thrown
+        MsgBox "Error loading '" & strLinetypeName & "'" & vbCr & _
+                Err.Description
+    Else
+        MsgBox "Loaded Linetype '" & strLinetypeName & "'"
+    End If
+End Sub
+
+Public Sub ChangeEntityLinetype()
+    On Error Resume Next                      ' handle exceptions inline
+    Dim objEntity As AcadEntity
+    Dim varPick As Variant
+    Dim strLinetypeName As String
+    Dim objLinetype As AcadLineType
+    
+    ThisDrawing.Utility.GetEntity objEntity, varPick, "Select an entity"
+    If objEntity Is Nothing Then Exit Sub     ' exit if no entity picked
+    
+    strLinetypeName = InputBox("Enter a new Linetype name: ")
+    If "" = strLinetypeName Then Exit Sub      ' exit if no name entered
+    
+    Set objLinetype = ThisDrawing.Linetypes(strLinetypeName)
+    If objLinetype Is Nothing Then
+        MsgBox "Linetype is not loaded"
+        Exit Sub   ' exit if linetype not found
+    End If
+    
+    objEntity.Linetype = strLinetypeName        ' else change entity layer
+End Sub
+
+Public Sub RenameLinetype()
+    On Error Resume Next                   ' handle exceptions inline
+    On Error Resume Next                   ' handle exceptions inline
+    Dim strLinetypeName As String
+    Dim objLinetype As AcadLineType
+    
+    strLinetypeName = InputBox("Original Linetype name: ")
+    If "" = strLinetypeName Then Exit Sub          ' exit if no old name
+    
+    Set objLinetype = ThisDrawing.Linetypes(strLinetypeName)
+    If objLinetype Is Nothing Then         ' exit if not found
+        MsgBox "Linetype '" & strLinetypeName & "' not found"
+        Exit Sub
+    End If
+    
+    strLinetypeName = InputBox("New Linetype name: ")
+    If "" = strLinetypeName Then Exit Sub          ' exit if no new name
+    
+    objLinetype.Name = strLinetypeName             ' try and change name
+    If Err Then                            ' check if it worked
+        MsgBox "Unable to rename Linetype: " & vbCr & Err.Description
+    Else
+        MsgBox "Linetype renamed to '" & strLinetypeName & "'"
+    End If
+End Sub
+
+Public Sub DeleteLinetype()
+    On Error Resume Next                   ' handle exceptions inline
+    Dim strLinetypeName As String
+    Dim objLinetype As AcadLineType
+    
+    strLinetypeName = InputBox("Linetype name to delete: ")
+    If "" = strLinetypeName Then Exit Sub          ' exit if no old name
+
+    Set objLinetype = ThisDrawing.Linetypes(strLinetypeName)
+    If objLinetype Is Nothing Then            ' exit if not found
+        MsgBox "Linetype '" & strLinetypeName & "' not found"
+        Exit Sub
+    End If
+
+    objLinetype.Delete                        ' try to delete it
+    If Err Then                            ' check if it worked
+        MsgBox "Unable to delete linetype: " & vbCr & Err.Description
+    Else
+        MsgBox "Linetype '" & strLinetypeName & "' deleted"
+    End If
+End Sub
+
+Public Sub DescribeLinetype()
+    On Error Resume Next                         ' handle exceptions inline
+    Dim strLinetypeName As String
+    Dim strLinetypeDescription As String
+    Dim objLinetype As AcadLineType
+    
+    strLinetypeName = InputBox("Enter the Linetype name: ")
+    If "" = strLinetypeName Then Exit Sub              ' exit if no old name
+    
+    Set objLinetype = ThisDrawing.Linetypes(strLinetypeName)
+    If objLinetype Is Nothing Then               ' exit if not found
+        MsgBox "Linetype '" & strLinetypeName & "' not found"
+        Exit Sub
+    End If
+    
+    strLinetypeDescription = InputBox("Enter the Linetype description: ")
+    If "" = strLinetypeDescription Then Exit Sub       ' exit if no new name
+    
+    objLinetype.Description = strLinetypeDescription    ' try and change name
+    If Err Then                                  ' check if it worked
+        MsgBox "Unable to alter Linetype: " & vbCr & Err.Description
+    Else
+        MsgBox "Linetype '" & strLinetypeName & "' description changed"
+    End If

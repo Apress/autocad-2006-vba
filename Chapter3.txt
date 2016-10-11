@@ -1,0 +1,87 @@
+Private Sub UserForm_Activate()
+  UserForm1.Width = 200
+  UserForm1.Height = 150
+End Sub
+
+Private Sub cmdPick_Click()
+Dim Point As Variant
+  On Error Resume Next
+  'hide the UserForm
+  UserForm1.Hide
+  'ask user to select a point
+  Point = ThisDrawing.Utility.GetPoint(, "Select a point")
+  If Err Then Exit Sub
+  'assign values to appropriate textbox
+  txtX = Point(0): txtY = Point(1): txtZ = Point(2)
+  'redisplay the UserForm
+  UserForm1.Show
+End Sub
+
+Private Sub cmdOK_Click()
+  Unload Me
+End Sub
+
+Private Sub UserForm_Activate()
+  Label1.Caption = "# of Blocks = " & ThisDrawing.Blocks.Count
+End Sub
+
+Private Sub TextBox1_KeyUp(ByVal KeyCode As MSForms.ReturnInteger, _
+                       ByVal Shift As Integer)
+  If KeyCode = 13 Then
+    MsgBox "You entered: " & TextBox1.Text
+  End If
+End Sub
+
+Private Sub UserForm_Activate()
+  With ComboBox1
+    .AddItem "Item 1"
+    .AddItem "Item 2"
+    .AddItem "Item 3"
+  End With
+End Sub
+
+Private Sub ComboBox1_Click()
+  MsgBox "You choose: " & ComboBox1.List(ComboBox1.ListIndex)
+End Sub
+
+Private Sub UserForm_Activate()
+  With ListBox1
+    .AddItem "Item 1"
+    .AddItem "Item 2"
+    .AddItem "Item 3"
+  End With
+End Sub
+
+Private Sub ListBox1_Click()
+  MsgBox "You clicked on: " & ListBox1.List(ListBox1.ListIndex)
+End Sub
+
+Private Sub CheckBox1_Click()
+  If CheckBox1.Value Then
+    MsgBox "Checked"
+    
+    Else
+      MsgBox "Unchecked"
+  End If
+End Sub
+
+Private Sub OptionButton1_Click()
+  MsgBox "OptionButton1"
+End Sub
+
+Private Sub OptionButton2_Click()
+  MsgBox "OptionButton2"
+End Sub
+
+Private Sub ToggleButton1_Click()
+  Select Case ToggleButton1.Value
+    Case False
+      MsgBox "ToggleButton1 is Off"
+    Case True
+      MsgBox "ToggleButton1 is On"
+  End Select
+End Sub
+
+Private Sub cmdOK_Click()
+  Unload Me
+End Sub

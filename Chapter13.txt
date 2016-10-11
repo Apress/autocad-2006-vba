@@ -1,0 +1,801 @@
+Public Sub ListBlocks()
+Dim objBlock As AcadBlock
+Dim strBlockList As String
+
+    strBlockList = "List of blocks: "
+    
+    For Each objBlock In ThisDrawing.Blocks
+        strBlockList = strBlockList & vbCr & objBlock.Name
+    Next
+    
+    MsgBox strBlockList
+End Sub
+
+Public Sub AddBlock()
+Dim dblOrigin(2) As Double
+Dim objBlock As AcadBlock
+Dim strName As String
+    
+    '' get a name from user
+    strName = InputBox("Enter a new block name: ")
+    If "" = strName Then Exit Sub          ' exit if no old name
+ 
+    '' set the origin point
+    dblOrigin(0) = 0:  dblOrigin(1) = 0:   dblOrigin(2) = 0
+    
+    ''check if block already exists
+On Error Resume Next
+    Set objBlock = ThisDrawing.Blocks.Item(strName)
+    If Not objBlock Is Nothing Then
+        MsgBox "Block already exists"
+        Exit Sub
+    End If
+    
+    '' create the block
+    Set objBlock = ThisDrawing.Blocks.Add(dblOrigin, strName)
+    
+    '' then add entities (circle)
+    objBlock.AddCircle dblOrigin, 10    
+End Sub
+
+Public Sub TestCopyObjects()
+Dim objSS As AcadSelectionSet
+Dim varBase As Variant
+Dim objBlock As AcadBlock
+Dim strName As String
+Dim strErase As String
+Dim varEnt As Variant
+Dim objSourceEnts() As Object
+Dim varDestEnts As Variant
+Dim dblOrigin(2) As Double
+Dim intI As Integer
+
+    'choose a selection set name that you only use as temporary storage and
+    'ensure that it does not currently exist
+On Error Resume Next
+    ThisDrawing.SelectionSets.Item("TempSSet").Delete
+    Set objSS = ThisDrawing.SelectionSets.Add("TempSSet")
+    objSS.SelectOnScreen
+    
+    '' get the other user input
+    With ThisDrawing.Utility
+        .InitializeUserInput 1
+        strName = .GetString(True, vbCr & "Enter a block name: ")
+        .InitializeUserInput 1
+        varBase = .GetPoint(, vbCr & "Pick a base point: ")
+        .InitializeUserInput 1, "Yes No"
+        strErase = .GetKeyword(vbCr & "Erase originals [Yes/No]? ")
+    End With
+        
+    '' set WCS origin
+    dblOrigin(0) = 0: dblOrigin(1) = 0: dblOrigin(2) = 0
+    
+    '' create the block
+    Set objBlock = ThisDrawing.Blocks.Add(dblOrigin, strName)
+    
+    '' put selected entities into an array for CopyObjects
+    ReDim objSourceEnts(objSS.Count - 1)
+    For intI = 0 To objSS.Count - 1
+        Set objSourceEnts(intI) = objSS(intI)
+    Next
+    
+    '' copy the entities into block
+    varDestEnts = ThisDrawing.CopyObjects(objSourceEnts, objBlock)
+    
+    '' move copied entities so that base point becomes origin
+    For Each varEnt In varDestEnts
+        varEnt.Move varBase, dblOrigin
+    Next
+    
+    '' if requested, erase the originals
+    If strErase = "Yes" Then
+        objSS.Erase
+    End If
+    
+    '' we're done - prove that we did it
+    ThisDrawing.SendCommand "._-insert" & vbCr & strName & vbCr
+
+    '' clean up selection set
+    objSS.Delete
+End Sub
+
+Public Sub RenameBlock()
+Dim strName As String
+Dim objBlock As AcadBlock
+    
+On Error Resume Next                   ' handle exceptions inline
+    strName = InputBox("Original Block name: ")
+    If "" = strName Then Exit Sub          ' exit if no old name
+    
+    Set objBlock = ThisDrawing.Blocks.Item(strName)
+    If objBlock Is Nothing Then            ' exit if not found
+        MsgBox "Block '" & strName & "' not found"
+        Exit Sub
+    End If
+    
+    strName = InputBox("New Block name: ")
+    If "" = strName Then Exit Sub          ' exit if no new name
+    
+    objBlock.Name = strName                ' try and change name
+    If Err Then                            ' check if it worked
+        MsgBox "Unable to rename block: " & vbCr & Err.Description
+    Else
+        MsgBox "Block renamed to '" & strName & "'"
+    End If
+End Sub
+
+Public Sub DeleteBlock()
+Dim strName As String
+Dim objBlock As AcadBlock
+    
+On Error Resume Next                   ' handle exceptions inline
+    strName = InputBox("Block name to delete: ")
+    If "" = strName Then Exit Sub          ' exit if no old name
+
+    Set objBlock = ThisDrawing.Blocks.Item(strName)
+    If objBlock Is Nothing Then            ' exit if not found
+        MsgBox "Block '" & strName & "' not found"
+        Exit Sub
+    End If
+
+    objBlock.Delete                        ' try to delete it
+    If Err Then                            ' check if it worked
+        MsgBox "Unable to delete Block: " & vbCr & Err.Description
+    Else
+        MsgBox "Block '" & strName & "' deleted"
+    End If
+End Sub
+
+Public Sub TestInsertBlock()
+Dim strName As String
+Dim varInsertionPoint As Variant
+Dim dblX As Double
+Dim dblY As Double
+Dim dblZ As Double
+Dim dblRotation As Double
+          
+    '' get input from user
+    With ThisDrawing.Utility
+        .InitializeUserInput 1
+        strName = .GetString(True, vbCr & "Block or file name: ")
+        .InitializeUserInput 1
+        varInsertionPoint = .GetPoint(, vbCr & "Pick the insert point: ")
+        .InitializeUserInput 1 + 2
+        dblX = .GetDistance(varInsertionPoint, vbCr & "X scale: ")
+        .InitializeUserInput 1 + 2
+        dblY = .GetDistance(varInsertionPoint, vbCr & "Y scale: ")
+        .InitializeUserInput 1 + 2
+        dblZ = .GetDistance(varInsertionPoint, vbCr & "Z scale: ")
+        .InitializeUserInput 1
+        dblRotation = .GetAngle(varInsertionPoint, vbCr & "Rotation angle: ")
+    End With
+    
+    '' create the object
+On Error Resume Next
+
+    ThisDrawing.ModelSpace.InsertBlock varInsertionPoint, strName, dblX, _
+                                       dblY, dblZ, dblRotation
+    If Err Then MsgBox "Unable to insert this block."    
+End Sub
+
+Private Sub CommandButton1_Click()
+    Dim objBlockRef As AcadBlockReference
+    Dim varInsertionPoint As Variant
+    Dim dblX As Double
+    Dim dblY As Double
+    Dim dblZ As Double
+    Dim dblRotation As Double
+          
+    '' get input from user
+    dlgOpenFile.Filter = "AutoCAD Blocks (*.DWG) | *.dwg"
+    dlgOpenFile.InitDir = Application.Path     
+    dlgOpenFile.ShowOpen
+
+    If dlgOpenFile.FileName = "" Then Exit Sub
+    Me.Hide
+    With ThisDrawing.Utility
+        .InitializeUserInput 1
+        varInsertionPoint = .GetPoint(, vbCr & "Pick the insert point: ")
+        .InitializeUserInput 1 + 2
+        dblX = .GetDistance(varInsertionPoint, vbCr & "X scale: ")
+        .InitializeUserInput 1 + 2
+        dblY = .GetDistance(varInsertionPoint, vbCr & "Y scale: ")
+        .InitializeUserInput 1 + 2
+        dblZ = .GetDistance(varInsertionPoint, vbCr & "Z scale: ")
+        .InitializeUserInput 1
+        dblRotation = .GetAngle(varInsertionPoint, vbCr & "Rotation angle: ")
+    End With
+    
+    '' create the object
+On Error Resume Next
+    Set objBlockRef = ThisDrawing.ModelSpace.InsertBlock _
+        (varInsertionPoint, dlgOpenFile.FileName, dblX, _
+        dblY, dblZ, dblRotation)
+    
+    If Err Then
+        MsgBox "Unable to insert this block"
+        Exit Sub
+    End If
+    objBlockRef.Update
+    Me.Show
+End Sub
+
+Public Sub TestExplode()
+    Dim objBRef As AcadBlockReference
+    Dim varPick As Variant
+    Dim varNew As Variant
+    Dim varEnts As Variant
+    Dim intI As Integer
+
+On Error Resume Next
+    '' get an entity and new point from user
+    With ThisDrawing.Utility
+        .GetEntity objBRef, varPick, vbCr & "Pick a block reference: "
+        If Err Then Exit Sub
+        varNew = .GetPoint(varPick, vbCr & "Pick a new location: ")
+        If Err Then Exit Sub
+    End With
+    
+    '' explode the blockref
+    varEnts = objBRef.Explode
+    If Err Then
+        MsgBox "Error has occurred: " & Err.Description
+        Exit Sub
+    End If
+        
+    '' move resulting entities to new location
+    For intI = 0 To UBound(varEnts)
+        varEnts(intI).Move varPick, varNew
+    Next
+End Sub
+
+Public Sub TestWBlock()
+Dim objSS As AcadSelectionSet
+Dim varBase As Variant
+Dim dblOrigin(2) As Double
+Dim objEnt As AcadEntity
+Dim strFilename As String
+    
+    'choose a selection set name that you only use as temporary storage and
+    'ensure that it does not currently exist
+On Error Resume Next
+    ThisDrawing.SelectionSets("TempSSet").Delete
+    Set objSS = ThisDrawing.SelectionSets.Add("TempSSet")
+    objSS.SelectOnScreen
+
+    With ThisDrawing.Utility
+        .InitializeUserInput 1
+        strFilename = .GetString(True, vbCr & "Enter a filename: ")
+        .InitializeUserInput 1
+        varBase = .GetPoint(, vbCr & "Pick a base point: ")
+    End With
+    
+    '' WCS origin
+    dblOrigin(0) = 0: dblOrigin(1) = 0: dblOrigin(2) = 0
+    
+    '' move selection to the origin
+    For Each objEnt In objSS
+        objEnt.Move varBase, dblOrigin
+    Next
+    
+    '' wblock selection to filename
+    ThisDrawing.Wblock strFilename, objSS
+        
+    '' move selection back
+    For Each objEnt In objSS
+        objEnt.Move dblOrigin, varBase
+    Next
+    
+    '' clean up selection set
+    objSS.Delete
+End Sub
+
+Public Sub TestAddMInsertBlock()
+Dim strName As String
+Dim varInsertionPoint As Variant
+Dim dblX As Double
+Dim dblY As Double
+Dim dblZ As Double
+Dim dR As Double
+Dim lngNRows As Long
+Dim lngNCols As Long
+Dim dblSRows As Double
+Dim dblSCols As Double
+          
+    '' get input from user
+    With ThisDrawing.Utility
+        .InitializeUserInput 1
+        strName = .GetString(True, vbCr & "Block or file name: ")
+        .InitializeUserInput 1
+        varInsertionPoint = .GetPoint(, vbCr & "Pick the insert point: ")
+        .InitializeUserInput 1 + 2
+        dblX = .GetDistance(varInsertionPoint, vbCr & "X scale: ")
+        .InitializeUserInput 1 + 2
+        dblY = .GetDistance(varInsertionPoint, vbCr & "Y scale: ")
+        .InitializeUserInput 1 + 2
+        dblZ = .GetDistance(varInsertionPoint, vbCr & "Z scale: ")
+        .InitializeUserInput 1
+        dR = .GetAngle(varInsertionPoint, vbCr & "Rotation angle: ")
+        .InitializeUserInput 1 + 2 + 4
+        lngNRows = .GetInteger(vbCr & "Number of rows: ")
+        .InitializeUserInput 1 + 2 + 4
+        lngNCols = .GetInteger(vbCr & "Number of columns: ")
+        .InitializeUserInput 1 + 2
+        dblSRows = .GetDistance(varInsertionPoint, vbCr & "Row spacing: ")
+        .InitializeUserInput 1 + 2
+        dblSCols = .GetDistance(varInsertionPoint, vbCr & "Column spacing: ")
+    End With
+    
+    '' create the object
+    ThisDrawing.ModelSpace.AddMInsertBlock varInsertionPoint, strName, _
+                 dblX, dblY, dblZ, dR, lngNRows, lngNCols, dblSRows, dblSCols
+End Sub
+
+Public Sub TestEditobjMInsertBlock()
+Dim objMInsert As AcadMInsertBlock
+Dim varPick As Variant
+Dim lngNRows As Long
+Dim lngNCols As Long
+Dim dblSRows As Double
+Dim dblSCols As Double
+        
+On Error Resume Next
+    '' get an entity and input from user
+    With ThisDrawing.Utility
+        .GetEntity objMInsert, varPick, vbCr & "Pick an MInsert: "
+        If objMInsert Is Nothing Then
+            MsgBox "You did not choose an MInsertBlock object"
+            Exit Sub
+        End If
+        .InitializeUserInput 1 + 2 + 4
+        lngNRows = .GetInteger(vbCr & "Number of rows: ")
+        .InitializeUserInput 1 + 2 + 4
+        lngNCols = .GetInteger(vbCr & "Number of columns: ")
+        .InitializeUserInput 1 + 2
+        dblSRows = .GetDistance(varPick, vbCr & "Row spacing: ")
+        .InitializeUserInput 1 + 2
+        dblSCols = .GetDistance(varPick, vbCr & "Column spacing: ")
+    End With
+    
+    '' update the objMInsert
+    With objMInsert
+        .Rows = lngNRows
+        .Columns = lngNCols
+        .RowSpacing = dblSRows
+        .ColumnSpacing = dblSCols
+        .Update
+    End With
+End Sub
+
+Public Sub GetDynamicBlockProps()
+Dim oBlockRef As IAcadBlockReference2
+Dim Point As Variant
+Dim oEntity As AcadEntity
+Dim Props As Variant
+Dim Index As Long
+
+  On Error Resume Next
+  
+  ThisDrawing.Utility.GetEntity oEntity, Point, "Select block ..."
+
+  If oEntity.ObjectName = "AcDbBlockReference" Then
+    Set oBlockRef = oEntity
+    
+    Else
+      'no block reference selected
+      Exit Sub
+  End If
+  
+  With oBlockRef
+    If .IsDynamicBlock = True Then
+      Props = .GetDynamicBlockProperties
+          
+      For Index = LBound(Props) To UBound(Props)
+        Dim oProp As AcadDynamicBlockReferenceProperty
+        
+        Set oProp = Props(Index)
+        
+        'is the value an array for an insertion point
+        If IsArray(oProp.Value) Then
+          Dim SubIndex As Long
+          
+          For SubIndex = LBound(oProp.Value) To UBound(oProp.Value)
+            Debug.Print oProp.PropertyName & ", " & oProp.Value(SubIndex)
+          Next SubIndex
+          
+          Else
+            Debug.Print oProp.PropertyName & ", " & oProp.Value
+        End If
+      Next Index
+    End If
+  End With
+End Sub
+
+Public Sub TestAttachExternalReference()
+Dim strPath As String
+Dim strName As String
+Dim varInsertionPoint As Variant
+Dim dblX As Double
+Dim dblY As Double
+Dim dblZ As Double
+Dim dblRotation As Double
+Dim strInput As String
+Dim blnOver As Boolean
+          
+    '' get input from user
+    With ThisDrawing.Utility
+        .InitializeUserInput 1
+        strPath = .GetString(True, vbCr & "External file name: ")
+        .InitializeUserInput 1
+        strName = .GetString(True, vbCr & "Block name to create: ")
+        .InitializeUserInput 1
+        varInsertionPoint = .GetPoint(, vbCr & "Pick the insert point: ")
+        .InitializeUserInput 1 + 2
+        dblX = .GetDistance(varInsertionPoint, vbCr & "X scale: ")
+        .InitializeUserInput 1 + 2
+        dblY = .GetDistance(varInsertionPoint, vbCr & "Y scale: ")
+        .InitializeUserInput 1 + 2
+        dblZ = .GetDistance(varInsertionPoint, vbCr & "Z scale: ")
+        .InitializeUserInput 1
+        dblRotation = .GetAngle(varInsertionPoint, vbCr & "Rotation angle: ")
+        .InitializeUserInput 1, "Attach Overlay"
+        strInput = .GetKeyword(vbCr & "Type [Attach/Overlay]: ")
+        blnOver = IIf("Overlay" = strInput, True, False)
+    End With
+    
+    '' create the object
+    ThisDrawing.ModelSpace.AttachExternalReference strPath, strName, _  
+                   varInsertionPoint, dblX, dblY, dblZ, dblRotation, blnOver
+End Sub
+
+Public Sub TestExternalReference()
+Dim strName As String
+Dim strOpt As String
+Dim objBlock As AcadBlock
+          
+On Error Resume Next    '' get input from user
+    With ThisDrawing.Utility
+        '' get the block name
+        .InitializeUserInput 1
+        strName = .GetString(True, vbCr & "External reference name: ")
+        If Err Then Exit Sub
+        
+        '' get the block definition
+        Set objBlock = ThisDrawing.Blocks.Item(strName)
+        
+        '' exit if not found
+        If Err Then
+            MsgBox "Unable to get block " & strName
+            Exit Sub
+        End If
+        
+        '' exit if not an xref
+        If Not objBlock.IsXRef Then
+            MsgBox "That is not an external reference"
+            Exit Sub
+        End If
+        
+        '' get the operation
+        .InitializeUserInput 1, "Detach Reload Unload"
+        strOpt = .GetKeyword(vbCr & "Option [Detach/Reload/Unload]: ")
+        If Err Then Exit Sub
+        
+        '' perform operation requested
+        If strOpt = "Detach" Then
+            objBlock.Detach
+        ElseIf strOpt = "Reload" Then
+            objBlock.Reload
+        Else
+            objBlock.Unload
+        End If
+    End With
+End Sub
+
+Public Sub TestBind()
+Dim strName As String
+Dim strOpt As String
+Dim objBlock As AcadBlock
+
+On Error Resume Next
+          
+    '' get input from user
+    With ThisDrawing.Utility
+        
+        '' get the block name
+        .InitializeUserInput 1
+        strName = .GetString(True, vbCr & "External reference name: ")
+        If Err Then Exit Sub
+        
+        '' get the block definition
+        Set objBlock = ThisDrawing.Blocks.Item(strName)
+        
+        '' exit if not found
+        If Err Then
+            MsgBox "Unable to get block " & strName
+            Exit Sub
+        End If
+        
+        '' exit if not an xref
+        If Not objBlock.IsXRef Then
+            MsgBox "That is not an external reference"
+            Exit Sub
+        End If
+        
+        '' get the option
+        .InitializeUserInput 1, "Prefix Merge"
+        strOpt = .GetKeyword(vbCr & "Dependent entries [Prefix/Merge]: ")
+        If Err Then Exit Sub
+            
+        '' perform the bind, using option entered
+        objBlock.Bind ("Merge" = strOpt)
+    End With
+End Sub
+
+Public Sub TestAddAttribute()
+    Dim dblOrigin(2) As Double
+    Dim dblEnt(2) As Double
+    Dim dblHeight As Double
+    Dim lngMode As Long
+    Dim strTag As String
+    Dim strPrompt As String
+    Dim strValue As String
+    Dim objBlock As AcadBlock
+    Dim objEnt As AcadEntity
+      
+    '' create the block
+    dblOrigin(0) = 0:  dblOrigin(1) = 0:  dblOrigin(2) = 0
+    Set objBlock = ThisDrawing.Blocks.Add(dblOrigin, "Affirmations")
+    
+    '' delete existing entities (in case we've run before)
+    For Each objEnt In objBlock
+        objEnt.Delete
+    Next
+    
+    '' create an ellipse in the block
+    dblEnt(0) = 4:  dblEnt(1) = 0:  dblEnt(2) = 0
+    objBlock.AddEllipse dblOrigin, dblEnt, 0.5
+    
+    '' set the height for all attributes
+    dblHeight = 0.25
+    dblEnt(0) = -1.5:  dblEnt(1) = 0:  dblEnt(2) = 0
+    
+    '' create a regular attribute
+    lngMode = acAttributeModeNormal
+    strTag = "Regular"
+    strPrompt = "Enter a value"
+    strValue = "I'm regular"
+    dblEnt(1) = 1
+    objBlock.AddAttribute dblHeight, lngMode, strPrompt, dblEnt, strTag, _
+                          strValue
+      
+    '' create an invisible attribute
+    lngMode = acAttributeModeInvisible
+    strTag = "Invisible"
+    strPrompt = "Enter a hidden value"
+    strValue = "I'm invisible"
+    dblEnt(1) = 0.5
+    objBlock.AddAttribute dblHeight, lngMode, strPrompt, dblEnt, strTag, _
+                          strValue
+    
+    '' create a constant attribute
+    lngMode = acAttributeModeConstant
+    strTag = "Constant"
+    strPrompt = "Don't bother"
+    strValue = "I'm set"
+    dblEnt(1) = 0
+    objBlock.AddAttribute dblHeight, lngMode, strPrompt, dblEnt, strTag, _
+                          strValue
+    
+    '' create a verify attribute
+    lngMode = acAttributeModeVerify
+    strTag = "Verify"
+    strPrompt = "Enter an important value"
+    strValue = "I'm important"
+    dblEnt(1) = -0.5
+    objBlock.AddAttribute dblHeight, lngMode, strPrompt, dblEnt, strTag, _
+                          strValue
+    
+    '' create a preset attribute
+    lngMode = acAttributeModePreset
+    strTag = "Preset"
+    strPrompt = "No question"
+    strValue = "I've got values"
+    dblEnt(1) = -1
+    objBlock.AddAttribute dblHeight, lngMode, strPrompt, dblEnt, strTag, _
+                          strValue
+
+    '' now insert block interactively using sendcommand
+    ThisDrawing.SendCommand "._-insert" & vbCr & "Affirmations" & vbCr
+End Sub
+
+Public Sub TestGetAttributes()
+Dim varPick As Variant
+Dim objEnt As AcadEntity
+Dim objBRef As AcadBlockReference
+Dim varAttribs As Variant
+Dim strAttribs As String
+Dim intI As Integer
+
+On Error Resume Next
+    With ThisDrawing.Utility
+        
+        '' get an entity from user
+        .GetEntity objEnt, varPick, vbCr & "Pick a block with attributes: "
+        If Err Then Exit Sub
+        
+        '' cast it to a blockref
+        Set objBRef = objEnt
+        
+        '' exit if not a block
+        If objBRef Is Nothing Then
+            .Prompt vbCr & "That wasn't a block."
+            Exit Sub
+        End If
+        
+        '' exit if it has no attributes
+        If Not objBRef.HasAttributes Then
+            .Prompt vbCr & "That block doesn't have attributes."
+            Exit Sub
+        End If
+        
+        '' get the attributerefs
+        varAttribs = objBRef.GetAttributes
+        
+        '' show some information about each
+        strAttribs = "Block Name: " & objBRef.Name & vbCrLf
+        For intI = LBound(varAttribs) To UBound(varAttribs)
+           strAttribs = strAttribs & " Tag(" & intI & "): " & _
+           varAttribs(intI).TagString & vbTab & "  Value(" & intI & "): " & _
+           varAttribs(intI).TextString & vbCrLf
+        Next
+
+    End With
+    MsgBox strAttribs
+
+End Sub
+
+Public Sub TestGetConstantAttributes()
+Dim varPick As Variant
+Dim objEnt As AcadEntity
+Dim objBRef As AcadBlockReference
+Dim varAttribs As Variant
+Dim strAttribs As String
+Dim intI As Integer
+
+    On Error Resume Next
+    With ThisDrawing.Utility
+        
+        '' get an entity from user
+        .GetEntity objEnt, varPick, vbCr & _
+                   "Pick a block with constant attributes: "
+        If Err Then Exit Sub
+        
+        '' cast it to a blockref
+        Set objBRef = objEnt
+        
+        '' exit if not a block
+        If objBRef Is Nothing Then
+            .Prompt vbCr & "That wasn't a block."
+            Exit Sub
+        End If
+        
+        '' exit if it has no attributes
+        If Not objBRef.HasAttributes Then
+            .Prompt vbCr & "That block doesn't have attributes."
+            Exit Sub
+        End If
+        
+        '' get the constant attributes
+        varAttribs = objBRef.GetConstantAttributes
+        
+        '' show some information about each
+        strAttribs = "Block Name: " & objBRef.Name & vbCrLf
+        For intI = LBound(varAttribs) To UBound(varAttribs)
+            strAttribs = strAttribs & " Tag(" & intI & "): " & _
+            varAttribs(intI).TagString & vbTab & "Value(" & intI & "): " & _
+            varAttribs(intI).TextString
+        Next
+    
+    End With
+    MsgBox strAttribs
+End Sub
+
+Function GetAttributes(objBlock As AcadBlock) As Collection
+Dim objEnt As AcadEntity
+Dim objAttribute As AcadAttribute
+Dim coll As New Collection
+                
+    '' iterate the block
+    For Each objEnt In objBlock
+    
+        '' if it's an attribute
+        If objEnt.ObjectName = "AcDbAttributeDefinition" Then
+        
+            '' cast to an attribute
+            Set objAttribute = objEnt
+        
+            '' add attribute to the collection
+            coll.Add objAttribute, objAttribute.TagString
+        End If
+    Next
+    
+    '' return collection
+    Set GetAttributes = coll
+End Function
+
+Public Sub DemoGetAttributes()
+Dim objAttribs As Collection
+Dim objAttrib As AcadAttribute
+Dim objBlock As AcadBlock
+Dim strAttribs As String
+
+    '' get the block
+    Set objBlock = ThisDrawing.Blocks.Item("Affirmations")
+    
+    '' get the attributes
+    Set objAttribs = GetAttributes(objBlock)
+    
+    '' show some information about each
+    
+    For Each objAttrib In objAttribs
+        strAttribs = objAttrib.TagString & vbCrLf
+        strAttribs = strAttribs & "Tag: " & objAttrib.TagString & vbCrLf & _
+"Prompt: " & objAttrib.PromptString & vbCrLf & " Value: " & _
+ objAttrib.TextString & vbCrLf & "  Mode: " & _
+ objAttrib.Mode
+        MsgBox strAttribs
+    Next
+    
+    '' find specific attribute by TagString
+    Set objAttrib = objAttribs.Item("PRESET")
+    
+    '' prove that we have the right one
+    strAttribs = "Tag: " & objAttrib.TagString & vbCrLf & "Prompt: " & _
+objAttrib.PromptString & vbCrLf & "Value: " & objAttrib.TextString & _
+vbCrLf & "Mode: " & objAttrib.Mode
+    MsgBox strAttribs
+End Sub
+
+Public Sub TestInsertAndSetAttributes()
+Dim objBRef As AcadBlockReference
+Dim varAttribRef As Variant
+Dim varInsertionPoint As Variant
+Dim dblX As Double
+Dim dblY As Double
+Dim dblZ As Double
+Dim dblRotation As Double
+          
+    '' get block input from user
+    With ThisDrawing.Utility
+        .InitializeUserInput 1
+        varInsertionPoint = .GetPoint(, vbCr & "Pick the insert point: ")
+        .InitializeUserInput 1 + 2
+        dblX = .GetDistance(varInsertionPoint, vbCr & "X scale: ")
+        .InitializeUserInput 1 + 2
+        dblY = .GetDistance(varInsertionPoint, vbCr & "Y scale: ")
+        .InitializeUserInput 1 + 2
+        dblZ = .GetDistance(varInsertionPoint, vbCr & "Z scale: ")
+        .InitializeUserInput 1
+        dblRotation = .GetAngle(varInsertionPoint, vbCr & "Rotation angle: ")
+    End With
+    
+    '' insert the block
+    Set objBRef = ThisDrawing.ModelSpace.InsertBlock(varInsertionPoint, _
+                              "Affirmations", dblX, dblY, dblZ, dblRotation)
+        
+    '' interate the attributerefs
+    For Each varAttribRef In objBRef.GetAttributes
+        
+        '' change specific values based on Tag
+        Select Case varAttribRef.TagString
+        Case "Regular":
+            varAttribRef.TextString = "I have new values"
+        Case "Invisible":
+            varAttribRef.TextString = "I'm still invisible"
+        Case "Verify":
+            varAttribRef.TextString = "No verification needed"
+        Case "Preset":
+            varAttribRef.TextString = "I can be changed"
+        End Select
+    Next
+End Sub

@@ -1,0 +1,515 @@
+Public Sub ListMenuGroups()
+Dim objMenuGroup As AcadMenuGroup
+Dim strMenuGroupNames As String
+
+    strMenuGroupNames = "The following menu groups are currently loaded, "
+
+    For Each objMenuGroup In Application.MenuGroups
+        If objMenuGroup.Type = acBaseMenuGroup Then
+            strMenuGroupNames = strMenuGroupNames & vbCrLf & _
+                                objMenuGroup.Name & ": Base menu"
+        Else
+            strMenuGroupNames = strMenuGroupNames & vbCrLf & _
+                                objMenuGroup.Name & ": Partial menu"
+        End If
+    Next
+    MsgBox strMenuGroupNames
+End Sub
+
+Public Sub ListMenusAndToolbars()
+Dim objMenuGroup As AcadMenuGroup
+Dim objPopupMenu As AcadPopupMenu
+Dim objToolBar As AcadToolbar
+Dim strMenusAndToolbars As String
+
+    On Error Resume Next
+    Set objMenuGroup = ThisDrawing.Application.MenuGroups.Item("ACAD")
+    If objMenuGroup Is Nothing Then 
+        MsgBox "ACAD menu group is not loaded"
+        Exit Sub
+    End If    
+
+    strMenusAndToolbars = _
+              "The ACAD menu group comprises the following menus: " & vbCrLf
+    For Each objPopupMenu In objMenuGroup.Menus
+        strMenusAndToolbars = strMenusAndToolbars & _
+                              objPopupMenu.NameNoMnemonic & ", "
+    Next
+
+    strMenusAndToolbars = strMenusAndToolbars & vbCrLf & vbCrLf & _
+                          " and the following toolbars: " & vbCrLf
+    
+    For Each objToolBar In objMenuGroup.Toolbars
+        strMenusAndToolbars = strMenusAndToolbars & objToolBar.Name & ", "
+    Next
+    MsgBox strMenusAndToolbars
+End Sub
+
+Public Sub SaveMenuGroupAsSource()
+Dim strMenuGroup As String
+Dim strSaveto As String
+Dim objMenuGroup As AcadMenuGroup
+    
+    strMenuGroup = InputBox("Enter the name of the menu group you" & _
+                            " wish to save")
+    If strMenuGroup = "" Then Exit Sub
+    
+On Error Resume Next
+    Set objMenuGroup = ThisDrawing.Application.MenuGroups.Item(strMenuGroup)
+    
+    If objMenuGroup Is Nothing Then
+        MsgBox "The menu group was not recognized"
+        Exit Sub
+    End If
+    
+    strSaveto = InputBox("Enter the filename to save" & strMenuGroup & " to")
+    If UCase(strSaveto) = "ACAD" Then
+        MsgBox "You should not overwrite the ACAD file"
+        Exit Sub
+    End If
+    
+    objMenuGroup.SaveAs strSaveto, acMenuFileSource
+End Sub
+
+Public Sub InsertMenu1()
+Dim objMenuGroup As AcadMenuGroup
+Dim strMenuGroupNames As String
+Dim strChosenMenuGroup As String
+Dim objMenu As AcadPopupMenu
+Dim strMenuNames As String
+Dim strChosenMenu As String
+
+    strMenuGroupNames = "Choose one of the loaded menu groups: " & vbCrLf
+    For Each objMenuGroup In ThisDrawing.Application.MenuGroups
+        strMenuGroupNames = strMenuGroupNames & objMenuGroup.Name & vbCrLf
+    Next objMenuGroup
+
+    strChosenMenuGroup = InputBox(strMenuGroupNames, "Choose a menu group")
+    If strChosenMenuGroup = "" Then Exit Sub
+
+    On Error Resume Next
+    Set objMenuGroup = ThisDrawing.Application.MenuGroups.Item(strChosenMenuGroup)
+    If objMenuGroup Is Nothing Then
+        MsgBox "The menu group you chose does not exist"
+        Exit Sub
+    End If
+
+    strMenuNames = "Choose a menu to add to the menu bar:" & vbCrLf
+    For Each objMenu In objMenuGroup.Menus
+        strMenuNames = strMenuNames & objMenu.Name & vbCrLf
+    Next objMenu
+
+    strChosenMenu = InputBox(strMenuNames, "Choose a menu")
+    If strChosenMenu = "" Then Exit Sub
+
+    ' check if menu is already on menu bar
+    Set objMenu = ThisDrawing.Application.MenuBar.Item(strChosenMenu)
+    If Not objMenu Is Nothing Then
+        MsgBox "This menu is already present on the menu bar"
+        Exit Sub
+    End If
+    Set objMenu = objMenuGroup.Menus.Item(strChosenMenu)
+    If objMenu Is Nothing Then
+        MsgBox "The menu you chose does not exist"
+        Exit Sub
+    End If
+        
+    objMenu.InsertInMenuBar 0
+End Sub
+
+Public Sub InsertMenu2()
+Dim objMenuGroup As AcadMenuGroup
+Dim strMenuGroupNames As String
+Dim strChosenMenuGroup As String
+Dim objMenu As AcadPopupMenu
+Dim strMenuNames As String
+Dim strChosenMenu As String
+Dim strMenuPosition As String
+
+    strMenuGroupNames = "Choose one of the loaded menu groups: " & vbCrLf
+    For Each objMenuGroup In ThisDrawing.Application.MenuGroups
+        strMenuGroupNames = strMenuGroupNames & objMenuGroup.Name & vbCrLf
+    Next
+
+    strChosenMenuGroup = InputBox(strMenuGroupNames, "Choose a menu group")
+    If strChosenMenuGroup = "" Then Exit Sub
+
+    On Error Resume Next
+    Set objMenuGroup = ThisDrawing.Application.MenuGroups.Item(strChosenMenuGroup)
+    If objMenuGroup Is Nothing Then
+        MsgBox "The menu group you chose does not exist"
+        Exit Sub
+    End If
+
+    strMenuNames = "Choose a menu to add to the menu bar:" & vbCrLf
+    For Each objMenu In objMenuGroup.Menus
+        strMenuNames = strMenuNames & objMenu.Name & vbCrLf
+    Next
+
+    strChosenMenu = InputBox(strMenuNames, "Choose a menu")
+    If strChosenMenu = "" Then Exit Sub
+
+    Set objMenu = objMenuGroup.Menus.Item(strChosenMenu)
+    If objMenu Is Nothing Then
+        MsgBox "The menu you chose does not exist"
+        Exit Sub
+    End If
+    
+    strMenuPosition = InputBox("Enter name of menu you wish to place it" & _
+                               " before (including accelerator keys)")
+    
+    objMenu.InsertInMenuBar strMenuPosition    
+End Sub
+
+Public Sub InsertMenu3()
+Dim objMenuGroup As AcadMenuGroup
+Dim strMenuGroupNames As String
+Dim strChosenMenuGroup As String
+Dim objMenu As AcadPopupMenu
+Dim strMenuNames As String
+Dim strChosenMenu As String
+Dim strMenuPosition As String
+
+    strMenuGroupNames = "Choose one of the loaded menu groups: " & vbCrLf
+    For Each objMenuGroup In ThisDrawing.Application.MenuGroups
+        strMenuGroupNames = strMenuGroupNames & objMenuGroup.Name & vbCrLf
+    Next
+
+    strChosenMenuGroup = InputBox(strMenuGroupNames, "Choose a menu group")
+    If strChosenMenuGroup = "" Then Exit Sub
+
+    On Error Resume Next
+    Set objMenuGroup = ThisDrawing.Application.MenuGroups.Item(strChosenMenuGroup)
+    If objMenuGroup Is Nothing Then
+        MsgBox "The menu group you chose does not exist"
+        Exit Sub
+    End If
+
+    strMenuNames = "Choose a menu to add to the menu bar:" & vbCrLf
+    For Each objMenu In objMenuGroup.Menus
+        strMenuNames = strMenuNames & objMenu.Name & vbCrLf
+    Next
+
+    strChosenMenu = InputBox(strMenuNames, "Choose a menu")
+    If strChosenMenu = "" Then Exit Sub
+    
+    strMenuPosition = InputBox("Enter name of menu you wish to place it" & _
+                               " before (including accelerator keys)")
+    
+    objMenuGroup.Menus.InsertMenuInMenuBar strChosenMenu, strMenuPosition
+End Sub
+
+Public Sub RemoveMenus()
+Dim objMenu As AcadPopupMenu
+
+    For Each objMenu In ThisDrawing.Application.MenuBar
+        If MsgBox("Remove " & objMenu.Name & "?", vbYesNo) = vbYes Then 
+            objMenu.RemoveFromMenuBar
+        end if
+    Next
+End Sub
+
+Public Sub RemoveMenu()
+Dim objMenuGroup As AcadMenuGroup
+Dim strMenuGroupNames As String
+Dim strChosenMenuGroup As String
+Dim strOnMenuBar As String
+Dim objMenu As AcadPopupMenu
+Dim strChosenMenu As String
+
+    strMenuGroupNames = "Choose one of the loaded menu groups: " & vbCrLf
+    For Each objMenuGroup In ThisDrawing.Application.MenuGroups
+        strMenuGroupNames = strMenuGroupNames & objMenuGroup.Name & vbCrLf
+    Next
+
+    strChosenMenuGroup = InputBox(strMenuGroupNames, "Choose a menu group")
+    If strChosenMenuGroup = "" Then Exit Sub
+
+    On Error Resume Next
+    Set objMenuGroup = ThisDrawing.Application.MenuGroups.Item(strChosenMenuGroup)
+    If objMenuGroup Is Nothing Then
+        MsgBox "The menu group you chose does not exist"
+        Exit Sub
+    End If
+
+    strOnMenuBar = "the following menus with the " & objMenuGroup.Name & _
+                   " menu group are displayed in the menu bar." & vbCrLf
+    For Each objMenu In objMenuGroup.Menus
+        If objMenu.OnMenuBar = True Then 
+            strOnMenuBar = strOnMenuBar & objMenu.Name & vbCrLf
+        end if
+    Next
+    strOnMenuBar = strOnMenuBar & "Please choose a menu to remove"
+    
+    strChosenMenu = InputBox(strOnMenuBar)
+    
+    objMenuGroup.Menus.RemoveMenuFromMenuBar strChosenMenu  
+End Sub
+
+Public Sub CreateApressMenu1()
+Dim objMenus As AcadPopupMenus
+Dim objMyMenu As AcadPopupMenu
+Dim strNewMenuName As String
+Dim objMyMenuItem As AcadPopupMenuItem
+
+    Set objMenus = ThisDrawing.Application.MenuGroups.Item(0).Menus
+
+    On Error Resume Next
+    Set objMyMenu = objMenus.Item("Apr&ess")
+    If Not objMyMenu Is Nothing Then
+        MsgBox "Menu already exists"
+        Exit Sub
+    End If
+    
+    Set objMyMenu = objMenus.Add("Ap&ress")
+
+    objMyMenu.InsertInMenuBar ThisDrawing.Application.MenuBar.Count
+    Set objMyMenuItem = objMyMenu.AddMenuItem(0, "Add &Circle", _
+        "-vbarun AddCircle ")
+End Sub
+
+Public Sub CreateApressMenu2()
+Dim objMenus As AcadPopupMenus
+Dim objMyMenu As AcadPopupMenu
+Dim strNewMenuName As String
+Dim objMyMenuItem As AcadPopupMenuItem
+
+    Set objMenus = ThisDrawing.Application.MenuGroups.Item(0).Menus
+
+    On Error Resume Next
+    Set objMyMenu = objMenus.Item("Ap&ress")
+    If objMyMenu Is Nothing Then
+        Set objMyMenu = objMenus.Add("Ap&ress")
+    End If
+    
+    'Check if the Menu is displayed on the MenuBar
+    If Not objMyMenu.OnMenuBar Then
+    'Display the menu on the menu bar
+        objMyMenu.InsertInMenuBar ThisDrawing.Application.MenuBar.Count
+    End If
+    Set objMyMenuItem = objMyMenu.AddMenuItem(0, "Add &Circle", _
+        "-vbarun AddCircle ")
+    objMyMenuItem.HelpString = "This adds a circle at the origin"
+    
+End Sub
+
+
+Public Sub AddCircle()
+Dim dblCenter(2) As Double
+  If ThisDrawing.ActiveSpace = acModelSpace Then
+     ThisDrawing.ModelSpace.AddCircle dblCenter, 2
+  Else
+     ThisDrawing.PaperSpace.AddCircle dblCenter, 2
+  End If
+End Sub
+
+Public Sub CreateSubMenus()
+Dim objMenus As AcadPopupMenus
+'main menu definition
+Dim objMenuCreates As AcadPopupMenu
+'submenu definitions
+Dim objMenuLine As AcadPopupMenuItem
+Dim objMenuRectangle As AcadPopupMenuItem
+Dim objSubMenuCircle As AcadPopupMenu
+Dim objSubMenuCenterRadius As AcadPopupMenuItem
+Dim objSubMenuCenterDiameter As AcadPopupMenuItem
+Dim objSubMenuText As AcadPopupMenu
+Dim objSubMenuMulti As AcadPopupMenuItem
+Dim objSubMenuSingle As AcadPopupMenuItem
+Dim strEscEsc As String
+
+    Set objMenus = ThisDrawing.Application.MenuGroups.Item(0).Menus
+    
+    'Create the new main menu
+    On Error Resume Next
+    Set objMenuCreates = objMenus.Item("Creates")
+    If objMenuCreates Is Nothing Then 
+      Set objMenuCreates = objMenus.Add("Creates")
+    end if
+    strEscEsc = Chr(27) & Chr(27) & Chr(95)
+    'Add a menu items to the new main menu
+    If objMenuCreates("Rectangle") Is Nothing Then 
+       Set objMenuRectangle = _
+        objMenuCreates.AddMenuItem(objMenuCreates.Count, "Rectangle", _
+                strEscEsc & "rectang ")
+    end if
+    If objMenuCreates("Line") Is Nothing Then 
+       Set objMenuLine = objMenuCreates.AddMenuItem(objMenuCreates.Count, _
+                "Line", strEscEsc & "line ")
+    End if
+    'create the circle submenu
+    If objMenuCreates("Circle") Is Nothing Then
+     Set objSubMenuCircle = objMenuCreates.AddSubMenu(objMenuCreates.Count, _
+                "Circle")
+       Set objSubMenuCenterRadius = objSubMenuCircle.AddMenuItem( _
+        objSubMenuCircle.Count, "Center, Radius", strEscEsc & "circle ")
+       Set objSubMenuCenterDiameter = objSubMenuCircle.AddMenuItem( _
+            objSubMenuCircle.Count, "Center, Diameter", _
+                             strEscEsc & "circle \d ")
+    End If
+    
+    'create the text submenu
+    If objMenuCreates("Text") Is Nothing Then
+       Set objSubMenuText = objMenuCreates.AddSubMenu(objMenuCreates.Count, _
+                "Text")
+       Set objSubMenuMulti = objSubMenuText.AddMenuItem( _
+        objSubMenuText.Count, "MultiLine Text", strEscEsc & "mtext ")
+       Set objSubMenuSingle = objSubMenuText.AddMenuItem( _
+        objSubMenuText.Count, "SingleLine Text", strEscEsc & "dtext ")
+    End If
+
+    'Display the menu on the menu bar
+    If objMenuCreates.OnMenuBar = False Then 
+      objMenuCreates.InsertInMenuBar (ThisDrawing.Application.MenuBar.Count)
+    End if  
+End Sub
+
+Public Sub DeleteMenu()
+Dim objMenu As AcadPopupMenu
+Dim objMenuItem As AcadPopupMenuItem
+Dim strDeleteMenuName As String
+Dim strMenuName As String
+
+    strDeleteMenuName = InputBox("Enter name of Menu to remove: ")
+    If strDeleteMenuName = "" Then Exit Sub
+
+On Error Resume Next
+    Set objMenu = ThisDrawing.Application.MenuBar.Item(strDeleteMenuName)
+    If objMenu Is Nothing Then
+        MsgBox "Menu is not on the menu bar"
+        Exit Sub
+    End If
+
+    For Each objMenuItem In objMenu
+        strMenuName = objMenuItem.Caption
+        If strMenuName = "" Then strMenuName = "Separator"
+        
+        If MsgBox("Delete " & strMenuName, vbYesNo, _
+                  "Confirm deletion of a MenuItem") = _
+           vbYes Then
+            objMenuItem.Delete
+        End If
+    Next
+End Sub
+
+Public Sub AddMenuItemToShortcutMenu()
+Dim objMenuGroup As AcadMenuGroup
+Dim objShortcutMenu As AcadPopupMenu
+Dim objMenuItem As AcadPopupMenu
+  
+    'only need the ACAD menugroup
+    Set objMenuGroup = ThisDrawing.Application.MenuGroups.Item("ACAD")
+    'find the shortcut menu
+    For Each objMenuItem In objMenuGroup.Menus
+        If objMenuItem.ShortcutMenu = True Then
+            Set objShortcutMenu = objMenuItem
+        End If
+    Next
+  
+ 
+    'Add menu item to the shortcut menu
+    objShortcutMenu.AddMenuItem "", "&Zoom &Extents", "_zoom e "
+End Sub
+
+Public Sub AddNewToolbar()
+Dim strTBName As String
+Dim objToolbar As AcadToolbar
+
+    strTBName = InputBox("Please enter name for new toolbar")
+    If strTBName = "" Then Exit Sub
+
+On Error Resume Next
+    Set objToolbar = ThisDrawing.Application.MenuGroups.Item("ACAD"). _
+                     Toolbars.Item(strTBName)
+    If Not objToolbar Is Nothing Then
+        MsgBox "This toolbar already exists"
+    Else
+        ThisDrawing.Application.MenuGroups.Item("ACAD").Toolbars.Add strTBName
+    End If
+End Sub
+
+Public Sub CreateNewToolbars()
+Dim objMenuGroup As AcadMenuGroup
+Dim objToolbars As AcadToolbars
+Dim objToolbar0 As AcadToolbar
+Dim objToolbar1 As AcadToolbar
+Dim objToolbar2 As AcadToolbar
+Dim objToolBarCircle As AcadToolbarItem
+Dim objToolBarText As AcadToolbarItem
+Dim strEscEsc As String
+
+  Set objMenuGroup = ThisDrawing.Application.MenuGroups.Item(0)
+  Set objToolbars = objMenuGroup.Toolbars
+    
+  'Create three new toolbars
+On Error Resume Next
+  Set objToolbar0 = objToolbars.Item("Custom Toolbar Create")
+  If Not objToolbar0 Is Nothing Then
+      MsgBox "The 'Custom Toolbar Create’ already exists"
+      Exit Sub
+  End If
+    
+  Set objToolbar0 = objToolbars.Add("Custom Toolbar Create")
+  Set objToolbar1 = objToolbars.Add("Circle")
+  Set objToolbar2 = objToolbars.Add("Text")
+  
+  'Add a toolbar item to the new toolbar
+  objToolbar0.AddToolbarButton objToolbar0.Count, "Line", _
+       "Draw a line", strEscEsc & "line "
+  objToolbar0.AddToolbarButton objToolbar0.Count, "Rectangle", _
+      "Draw a rectangle", strEscEsc & "rectang "
+  
+  'create the circle flyout toolbar button
+  Set objToolBarCircle = objToolbar0.AddToolbarButton(objToolbar0.Count, _
+      "Circle", "Draw a circle", "Circle", True)
+  'create the circle flyout toolbar
+  objToolbar1.AddToolbarButton objToolbar1.Count, "Center, Radius", _
+      "Draw circle using Center point and radius", strEscEsc & "circle "
+  objToolbar1.AddToolbarButton objToolbar1.Count, "Center, Diameter", _
+      "Draw circle using Center point and diameter", strEscEsc & "circle \d "
+  
+  'create the text submenu
+  Set objToolBarText = objToolbar0.AddToolbarButton(objToolbar0.Count, _
+      "Text", "Create text strings", "Text", True)
+  'create the text flyout toolbar
+  objToolbar2.AddToolbarButton objToolbar2.Count, "MultiLine Text", _
+      "Create multi-text", strEscEsc & "mtext "
+  objToolbar2.AddToolbarButton objToolbar2.Count, "SingleLine Text", _
+      "Create single-line text", strEscEsc & "dtext "
+  
+  objToolBarCircle.AttachToolbarToFlyout objMenuGroup.Name, objToolbar1.Name
+  objToolBarText.AttachToolbarToFlyout objMenuGroup.Name, objToolbar2.Name
+
+  ‘SetIcons “C:\Apress\smLineIcon.bmp”, “C:\Apress\lgLineIcon.bmp”
+  
+  objToolbar0.Visible = True
+  objToolbar1.Visible = False
+  objToolbar2.Visible = False
+End Sub
+
+Public Sub SetIcons(strIconSmall As String, strIconLarge As String)
+Dim objToolBarItem As AcadToolbarItem
+    Set objToolBarItem = ThisDrawing.Application.MenuGroups(0).Toolbars( _
+                                            "Custom Toolbar Create")("Line")
+
+    objToolBarItem.SetBitmaps strIconSmall, _
+                              strIconLarge
+End Sub
+
+Public Sub FloatDrawToolbar()
+Dim objToolBarDraw As AcadToolbar
+    
+     Set objToolBarDraw = _
+     ThisDrawing.Application.MenuGroups.Item("ACAD").Toolbars.Item("Draw")
+     
+     objToolBarDraw.Float 0, 0, 3
+End Sub
+
+Public Sub DockDrawToolbar()
+Dim objToolBarDraw As AcadToolbar
+
+    Set objToolBarDraw =  _
+    ThisDrawing.Application.MenuGroups.Item("ACAD").Toolbars.Item("Draw")
+    
+    objToolBarDraw.Dock acToolbarDockBottom
+End Sub

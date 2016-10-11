@@ -1,0 +1,424 @@
+Public Sub NewDimStyle
+Dim objDimStyle As AcadDimStyle
+
+    Set objDimStyle = ThisDrawing.DimStyles.Add("NewDimStyle")
+    SetVariable "DIMCLRD", acRed
+    SetVariable "DIMCLRE", acBlue
+    SetVariable "DIMCLRT", acWhite
+    SetVariable "DIMLWD", acLnWtByLwDefault
+    objDimStyle.CopyFrom ThisDrawing
+End Sub
+
+Public Sub ChangeDimStyle()
+Dim objDimension As AcadDimension
+Dim varPickedPoint As Variant
+Dim objDimStyle As AcadDimStyle
+Dim strDimStyles As String
+Dim strChosenDimStyle As String
+
+On Error Resume Next
+    ThisDrawing.Utility.GetEntity objDimension, varPickedPoint, _
+                              "Pick a dimension whose style you wish to set"
+    If objDimension Is Nothing Then
+        MsgBox "You failed to pick a dimension object"
+        Exit Sub
+    End If
+    
+    For Each objDimStyle In ThisDrawing.DimStyles
+        strDimStyles = strDimStyles & objDimStyle.Name & vbCrLf
+    Next objDimStyle
+    strChosenDimStyle = InputBox("Choose one of the following " & _
+                        "Dimension styles to apply" & vbCrLf & strDimStyles)
+    If strChosenDimStyle = "" Then Exit Sub
+    
+    objDimension.StyleName = strChosenDimStyle
+End Sub 
+
+Public Sub SetActiveDimStyle()
+Dim strDimStyles As String
+Dim strChosenDimStyle As String
+Dim objDimStyle As AcadDimStyle
+
+    For Each objDimStyle In ThisDrawing.DimStyles
+        strDimStyles = strDimStyles & objDimStyle.Name & vbCrLf
+    Next
+
+    strChosenDimStyle = InputBox("Choose one of the following Dimension " &  _ 
+     “styles:" & vbCr & vbCr & strDimStyles, "Existing Dimension style is: " &  _
+     ThisDrawing.ActiveDimStyle.Name, ThisDrawing.ActiveDimStyle.Name)
+    If strChosenDimStyle = "" Then Exit Sub
+
+On Error Resume Next
+    ThisDrawing.ActiveDimStyle = ThisDrawing.DimStyles(strChosenDimStyle)
+    If Err Then MsgBox "Dimension style was not recognized"
+End Sub
+
+Public Sub Add3PointAngularDimension()
+Dim varAngularVertex As Variant
+Dim varFirstPoint As Variant
+Dim varSecondPoint As Variant
+Dim varTextLocation As Variant
+Dim objDim3PointAngular As AcadDim3PointAngular
+    
+    'Define the dimension
+    varAngularVertex = ThisDrawing.Utility.GetPoint(, _
+                                                 "Enter the center point: ")
+    varFirstPoint = ThisDrawing.Utility.GetPoint(varAngularVertex, _
+                                                 "Select first point: ")
+    varSecondPoint = ThisDrawing.Utility.GetPoint(varAngularVertex, _
+                                                 "Select second point: ")
+    varTextLocation = ThisDrawing.Utility.GetPoint(varAngularVertex, _
+                "Pick dimension text location: ")
+    
+    Set objDim3PointAngular = ThisDrawing.ModelSpace.AddDim3PointAngular( _
+        varAngularVertex, varFirstPoint, varSecondPoint, varTextLocation)
+    objDim3PointAngular.Update
+End Sub
+
+Public Sub AddAlignedDimension()
+Dim varFirstPoint As Variant
+Dim varSecondPoint As Variant
+Dim varTextLocation As Variant
+Dim objDimAligned As AcadDimAligned
+    'Define the dimension
+    varFirstPoint = ThisDrawing.Utility.GetPoint(, "Select first point: ")
+    varSecondPoint = ThisDrawing.Utility.GetPoint(varFirstPoint, _
+                                                  "Select second point: ")
+    varTextLocation = ThisDrawing.Utility.GetPoint(, _
+                                           "Pick dimension text location: ")
+      
+    'Create an aligned dimension
+    Set objDimAligned = ThisDrawing.ModelSpace.AddDimAligned(varFirstPoint, _
+                                            varSecondPoint, varTextLocation)
+    objDimAligned.Update
+    
+    MsgBox "Now we will change to Engineering units format"
+    objDimAligned.UnitsFormat = acDimLEngineering
+    objDimAligned.Update
+End Sub
+
+Public Sub AddAngularDimension()
+Dim varAngularVertex As Variant
+Dim varFirstPoint As Variant
+Dim varSecondPoint As Variant
+Dim varTextLocation As Variant
+Dim objDimAngular As AcadDimAngular
+  
+    'Define the dimension
+    varAngularVertex = ThisDrawing.Utility.GetPoint(, _
+                                                 "Enter the center point: ")
+    varFirstPoint = ThisDrawing.Utility.GetPoint(varAngularVertex, _
+                                                 "Select first point: ")
+    varSecondPoint = ThisDrawing.Utility.GetPoint(varAngularVertex, _
+                                                  "Select second point: ")
+    varTextLocation = ThisDrawing.Utility.GetPoint(varAngularVertex, _
+            "Pick dimension text location: ")
+    
+    'Create an angular dimension
+    Set objDimAngular = ThisDrawing.ModelSpace.AddDimAngular( _
+           varAngularVertex, varFirstPoint, varSecondPoint, varTextLocation)
+    objDimAngular.AngleFormat = acGrads
+    objDimAngular.Update
+    MsgBox "Angle measured in GRADS"
+      
+    objDimAngular.AngleFormat = acDegreeMinuteSeconds
+    objDimAngular.TextPrecision = acDimPrecisionFour
+    objDimAngular.Update
+    MsgBox "Angle measured in Degrees Minutes Seconds"
+End Sub
+
+Public Sub AddDiametricDimension()
+Dim varFirstPoint As Variant
+Dim varSecondPoint As Variant
+Dim dblLeaderLength As Double
+Dim objDimDiametric As AcadDimDiametric
+Dim intOsmode As Integer
+    
+    'get original object snap settings
+    intOsmode = ThisDrawing.GetVariable("osmode")
+    ThisDrawing.SetVariable "osmode", 512 ' Near
+    
+    With ThisDrawing.Utility
+        varFirstPoint = .GetPoint(, "Select first point on circle: ")
+        ThisDrawing.SetVariable "osmode", 128 ' Per
+        varSecondPoint = .GetPoint(varFirstPoint, _
+                                   "Select a point opposite the first: ")
+        dblLeaderLength = .GetDistance(varFirstPoint, _
+                                   "Enter leader length from first point: ")
+    End With
+    
+    Set objDimDiametric = ThisDrawing.ModelSpace.AddDimDiametric( _
+                             varFirstPoint, varSecondPoint, dblLeaderLength)
+    objDimDiametric.UnitsFormat = acDimLEngineering
+    objDimDiametric.PrimaryUnitsPrecision = acDimPrecisionFive
+    objDimDiametric.FractionFormat = acNotStacked
+    objDimDiametric.Update
+    
+    'reinstate original object snap settings
+    ThisDrawing.SetVariable "osmode", intOsmode
+End Sub
+
+Public Sub AddOrdinateDimension()
+Dim varBasePoint As Variant
+Dim varLeaderEndPoint As Variant
+Dim blnUseXAxis As Boolean
+Dim strKeywordList As String
+Dim strAnswer As String
+Dim objDimOrdinate As AcadDimOrdinate
+
+    strKeywordList = "X Y"    
+    'Define the dimension
+    varBasePoint = ThisDrawing.Utility.GetPoint(, _
+                                     "Select ordinate dimension position: ")
+    ThisDrawing.Utility.InitializeUserInput 1, strKeywordList
+    strAnswer = ThisDrawing.Utility.GetKeyword("Along Which Axis? <X/Y>: ")
+    
+    If strAnswer = "X" Then
+      varLeaderEndPoint = ThisDrawing.Utility.GetPoint(varBasePoint, _
+                                      "Select X point for dimension text: ")
+      blnUseXAxis = True
+      Else
+        varLeaderEndPoint = ThisDrawing.Utility.GetPoint(varBasePoint, _
+                                      "Select Y point for dimension text: ")
+        blnUseXAxis = False
+    End If
+    
+    'Create an ordinate dimension
+    Set objDimOrdinate = ThisDrawing.ModelSpace.AddDimOrdinate( _
+                               varBasePoint, varLeaderEndPoint, blnUseXAxis)
+    objDimOrdinate.TextSuffix = "units"
+    objDimOrdinate.Update
+End Sub
+
+Public Sub AddRadialDimension()
+Dim objUserPickedEntity As Object
+Dim varEntityPickedPoint As Variant
+Dim varEdgePoint As Variant
+Dim dblLeaderLength As Double
+Dim objDimRadial As AcadDimRadial
+Dim intOsmode As Integer
+    
+    intOsmode = ThisDrawing.GetVariable("osmode")
+    ThisDrawing.SetVariable "osmode", 512 ' Near
+    
+    'Define the dimension
+    On Error Resume Next
+    With ThisDrawing.Utility
+        .GetEntity objUserPickedEntity, varEntityPickedPoint, _
+                   "Pick Arc or Circle:"
+        If objUserPickedEntity Is Nothing Then
+            MsgBox "You did not pick an entity"
+            Exit Sub
+        End If
+        varEdgePoint = .GetPoint(objUserPickedEntity.Center, _
+                                 "Pick edge point")
+        dblLeaderLength = .GetReal("Enter leader length from this point: ")
+    End With
+    
+    'Create the radial dimension
+    Set objDimRadial = ThisDrawing.ModelSpace.AddDimRadial( _
+                  objUserPickedEntity.Center, varEdgePoint, dblLeaderLength)
+    objDimRadial.ArrowheadType = acArrowArchTick
+    objDimRadial.Update
+    'reinstate original setting
+    ThisDrawing.SetVariable "osmode", intOsmode
+End Sub
+
+Public Sub AddRotatedDimension()
+Dim varFirstPoint As Variant
+Dim varSecondPoint As Variant
+Dim varTextLocation As Variant
+Dim strRotationAngle As String
+Dim objDimRotated As AcadDimRotated
+    
+    'Define the dimension
+    With ThisDrawing.Utility
+      varFirstPoint = .GetPoint(, "Select first point: ")
+      varSecondPoint = .GetPoint(varFirstPoint, "Select second point: ")
+      varTextLocation = .GetPoint(, "Pick dimension text location: ")
+      strRotationAngle = .GetString(False, "Enter rotation angle in degrees")
+    End With
+    'Create a rotated dimension
+    Set objDimRotated = ThisDrawing.ModelSpace.AddDimRotated(varFirstPoint, _
+      varSecondPoint, varTextLocation, _
+      ThisDrawing.Utility.AngleToReal(strRotationAngle, acDegrees))
+    objDimRotated.DecimalSeparator = ","
+    objDimRotated.Update
+End Sub
+
+Public Sub CreateTolerance()
+Dim strToleranceText As String
+Dim varInsertionPoint As Variant
+Dim varTextDirection As Variant
+Dim intI As Integer
+Dim objTolerance As AcadTolerance
+
+  strToleranceText = InputBox("Please enter the text for the tolerance")
+  varInsertionPoint = ThisDrawing.Utility.GetPoint(, _
+                       "Please enter the insertion point for the tolerance")
+  varTextDirection = ThisDrawing.Utility.GetPoint(varInsertionPoint, _
+                               "Please enter a direction for the tolerance")
+    
+  For intI = 0 To 2
+    varTextDirection(intI) = varTextDirection(intI) - varInsertionPoint(intI)
+  Next
+    
+  Set objTolerance = ThisDrawing.ModelSpace.AddTolerance(strToleranceText, _
+                                        varInsertionPoint, varTextDirection)
+
+End Sub 
+
+Public Sub AddTextStyle
+Dim objTextStyle As AcadTextStyle
+
+    Set objTextStyle = ThisDrawing.TextStyles.Add("Bold Greek Symbols")
+    objTextStyle.SetFont "Symbol", True, False, 0, 0
+End Sub
+
+Public Sub GetTextSettings()
+Dim objTextStyle As AcadTextStyle
+Dim strTextStyleName As String
+Dim strTextStyles As String
+Dim strTypeFace As String
+Dim blnBold As Boolean
+Dim blnItalic As Boolean
+Dim lngCharacterSet As Long
+Dim lngPitchandFamily As Long
+Dim strText As String
+    
+    ' Get the name of each text style in the drawing
+    For Each objTextStyle In ThisDrawing.TextStyles
+        strTextStyles = strTextStyles & vbCr & objTextStyle.Name
+    Next
+    ' Ask the user to select the Text Style to look at
+    strTextStyleName = InputBox("Please enter the name of the TextStyle " & _
+                "whose setting you would like to see" & vbCr & _
+                strTextStyles,"TextStyles", ThisDrawing.ActiveTextStyle.Name)
+    ' Exit the program if the user input was cancelled or empty
+    If strTextStyleName = "" Then Exit Sub
+
+On Error Resume Next
+    Set objTextStyle = ThisDrawing.TextStyles(strTextStyleName)
+    ' Check for existence the text style
+    If objTextStyle Is Nothing Then
+        MsgBox "This text style does not exist"
+        Exit Sub
+    End If
+    
+    ' Get the Font properties
+    objTextStyle.GetFont strTypeFace, blnBold, blnItalic, lngCharacterSet, _
+                lngPitchandFamily
+    ' Check for Type face
+    If strTypeFace = "" Then  ' No True type
+        MsgBox "Text Style: " & objTextStyle.Name & vbCr & _
+                "Using file font: " & objTextStyle.fontFile, _
+                vbInformation, "Text Style: " & objTextStyle.Name
+    
+        Else
+        ' True Type font info
+       strText = "The text style: " & strTextStyleName & " has " & vbCrLf & _
+                 "a " & strTypeFace & " type face"
+       If blnBold Then strText = strText & vbCrLf & " and is bold"
+       If blnItalic Then strText = strText & vbCrLf & " and is italicized"
+       MsgBox strText & vbCr & "Using file font: " & objTextStyle.fontFile, _
+              vbInformation, "Text Style: " & objTextStyle.Name
+    End If
+End Sub
+
+Public Sub SetFontFile
+Dim objTextStyle As AcadTextStyle
+
+    Set objTextStyle = ThisDrawing.TextStyles.Add("Roman")
+    objTextStyle.fontFile = "romand.shx"
+End Sub 
+
+Public Sub ChangeTextStyle()
+Dim strTextStyles As String
+Dim objTextStyle As AcadTextStyle
+Dim objLayer As AcadLayer
+Dim strLayerName As String
+Dim strStyleName As String
+Dim objAcadObject As AcadObject
+    
+On Error Resume Next
+    For Each objTextStyle In ThisDrawing.TextStyles
+        strTextStyles = strTextStyles & vbCr & objTextStyle.Name
+    Next
+    strStyleName = InputBox("Enter name of style to apply:" & vbCr & _
+              strTextStyles, "TextStyles", ThisDrawing.ActiveTextStyle.Name)
+    Set objTextStyle = ThisDrawing.TextStyles(strStyleName)
+    If objTextStyle Is Nothing Then
+        MsgBox "Style does not exist"
+        Exit Sub
+    End If
+
+    For Each objAcadObject In ThisDrawing.ModelSpace
+        If objAcadObject.ObjectName = "AcDbMText" Or _
+            objAcadObject.ObjectName = "AcDbText" Then
+            objAcadObject.StyleName = strStyleName
+            objAcadObject.Update
+        End If
+    Next
+End Sub
+
+Public Sub SetDefaultTextStyle()
+Dim strTextStyles As String
+Dim objTextStyle As AcadTextStyle
+Dim strTextStyleName As String
+
+    For Each objTextStyle In ThisDrawing.TextStyles
+        strTextStyles = strTextStyles & vbCr & objTextStyle.Name
+    Next
+    strTextStyleName = InputBox("Enter name of style to apply:" & vbCr & _
+              strTextStyles, "TextStyles", ThisDrawing.ActiveTextStyle.Name)
+    If strTextStyleName = "" Then Exit Sub
+
+On Error Resume Next
+    Set objTextStyle = ThisDrawing.TextStyles(strTextStyleName)
+    If objTextStyle Is Nothing Then
+        MsgBox "This text style does not exist"
+        Exit Sub
+    End If
+    
+    ThisDrawing.ActiveTextStyle = objTextStyle
+End Sub
+
+Public Sub CreateStraightLeaderWithNote()
+Dim dblPoints(5) As Double
+Dim varStartPoint As Variant
+Dim varEndPoint As Variant
+Dim intLeaderType As Integer
+Dim objAcadLeader As AcadLeader
+Dim objAcadMtext As AcadMText
+Dim strMtext As String
+Dim intI As Integer
+    
+    intLeaderType = acLineWithArrow
+    varStartPoint = ThisDrawing.Utility.GetPoint(, _
+                                              "Select leader start point: ")
+    varEndPoint = ThisDrawing.Utility.GetPoint(varStartPoint, _
+                                               "Select leader end point: ")
+    
+    For intI = 0 To 2
+      dblPoints(intI) = varStartPoint(intI)
+      dblPoints(intI + 3) = varEndPoint(intI)
+    Next
+    
+    strMtext = InputBox("Notes:", "Leader Notes")
+    If strMtext = "" Then Exit Sub
+    ' Create the text for the leader
+    Set objAcadMtext = ThisDrawing.ModelSpace.AddMText(varEndPoint, _
+    Len(strMtext) * ThisDrawing.GetVariable("dimscale"), strMtext)
+    ' Flip the alignment direction of the text
+    If varEndPoint(0) > varStartPoint(0) Then
+        objAcadMtext.AttachmentPoint = acAttachmentPointMiddleLeft
+    Else
+        objAcadMtext.AttachmentPoint = acAttachmentPointMiddleRight
+    End If
+    objAcadMtext.InsertionPoint = varEndPoint
+    
+    'Create the leader object
+    Set objAcadLeader = ThisDrawing.ModelSpace.AddLeader(dblPoints, _
+                                                objAcadMtext, intLeaderType)
+    objAcadLeader.Update
+End Sub

@@ -1,0 +1,156 @@
+Public Sub StartExcel(App As Excel.Application, Visible As Boolean)
+  'handle errors inline
+  On Error Resume Next
+    Set App = GetObject(, "Excel.Application")  'depends on application
+  'check to see if application is running
+  If Err Then
+    'no, application will need to be started
+    Err.Clear
+    Set App = CreateObject("Excel.Application")  'depends on application
+    'check to see if application was started
+    If Err Then
+      'no, application could not be started - exit
+      Exit Sub
+    End If
+  End If
+  'set the application visibility
+  App.Visible = Visible
+End Sub
+
+Public Sub Start()
+Dim oExcel As Excel.Application
+  'attempt to start Excel
+  StartExcel oExcel, True
+  
+  If Not oExcel Is Nothing Then
+    MsgBox "Success"
+
+    Else
+      MsgBox "Could not start Excel, exiting ...", vbCritical
+      Exit Sub    
+  End If
+End Sub
+
+Dim Workbook As Excel.Workbook
+Set Workbook = oExcel.Workbooks.Add
+
+Dim WorkSheet As Excel.WorkSheet
+Set WorkSheet = oExcel.Worksheets.Add
+
+Dim WorkSheet As Excel.WorkSheet
+Set WorkSheet = oExcel.Worksheets(1)
+
+  With WorkSheet
+    .Cells(1, 1).Value = 1: .Cells(1, 2).Value = 2
+    .Cells(2, 1).Value = 1.5: .Cells(2, 2).Value = 3
+    .Cells(3, 1).Value = "Text 1": .Cells(3, 2).Value = "Text 2"
+  End With
+
+  With WorkSheet
+    MsgBox .Cells(1, 1).Value & ", " & .Cells(1, 2).Value
+    MsgBox .Cells(2, 1).Value & ", " & .Cells(2, 2).Value
+    MsgBox .Cells(3, 1).Value & ", " & .Cells(3, 2).Value
+  End With
+
+Workbook.Close True, "C:\Test.xls"
+
+App.Quit
+
+Dim oDocument As Word.Document
+Set oDocument = oWord.Documents.Add
+
+oDocument.Content.Text = "This is some sample text"
+
+oDocument.PageSetup.Orientation = wdOrientPortrait
+
+oDocument.PageSetup.Orientation = wdOrientLandscape
+
+oDocument.PageSetup.LeftMargin = InchesToPoints(0.5)
+oDocument.PageSetup.RightMargin = InchesToPoints(0.5)
+oDocument.PageSetup.TopMargin = InchesToPoints(0.5)
+oDocument.PageSetup.BottomMargin = InchesToPoints(0.5)
+
+oDocument.Sections(1).Headers(wdHeaderFooterPrimary) _
+.Range.Text = "This is Header text"
+
+oDocument.Sections(1).Headers(wdHeaderFooterPrimary) _
+.Range.Text = "This is Header text"
+
+oDocument.SaveAs "Sample"
+
+oWord.Documents("Sample.doc").Close True
+
+oWord.Quit
+
+Dim oAccess As New ADODB.Connection
+
+
+oAccess.Open "Provider=Microsoft.Jet.OLEDB.4.0;" & _
+             "Data Source=" & "C:\AutoCAD-VBA.mdb" & ";"
+  'retrieve records from the Layers table
+  Dim oRecordset As New ADODB.Recordset
+  
+  oRecordset.Open "Select * From Layers", oAccess, adOpenKeyset
+  
+  With oRecordset
+    Do While Not .EOF
+      MsgBox !LayerName & ", Color is " & !color
+      .MoveNext
+    Loop
+    .Close
+  End With
+
+Dim oLayer As AcadLayer
+  
+oRecordset.Open "Select * From Layers", oAccess, adOpenKeyset, adLockOptimistic
+  
+For Each oLayer In ThisDrawing.Layers
+  With oRecordset
+    .AddNew
+    !LayerName = oLayer.Name
+    !Color = oLayer.Color
+    .Update
+  End With
+Next oLayer
+
+oRecordset.Close
+
+oAccess.Close
+
+Public Function ShowDriveType(drvpath)
+   Dim fso, d, dt
+   Set fso = CreateObject("Scripting.FileSystemObject")
+   Set d = fso.GetDrive(drvpath)
+   Select Case d.DriveType
+      Case 0: dt = "Unknown"
+      Case 1: dt = "Removable"
+      Case 2: dt = "Fixed"
+      Case 3: dt = "Network"
+      Case 4: dt = "CD-ROM"
+      Case 5: dt = "RAM Disk"
+   End Select
+   ShowDriveType = dt
+End Function
+
+
+Public Function ShowFileSystemType(drvspec)
+   Dim fso,d
+   Set fso = CreateObject("Scripting.FileSystemObject")
+   Set d = fso.GetDrive(drvspec)
+   ShowFileSystemType = d.FileSystem
+End Function
+
+
+MsgBox "C: Drive Type is " & ShowDriveType("C")
+MsgBox "C: File System is " & ShowFileSystemType("C")
+
+Public Sub ShowAllComputers()
+  Dim adsDomain
+  Set adsDomain = GetObject("WinNT://MyDomainName")
+  For each objMember in adsDomain
+    If Ucase(objMember.Class) = "COMPUTER" Then
+      Debug.Print objMember.Name  & vbCrLf
+    End If
+  Next
+  Set adsDomain = Nothing
+End Sub

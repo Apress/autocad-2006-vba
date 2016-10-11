@@ -1,0 +1,324 @@
+Public Sub DisplayViews()
+    Dim objView As AcadView
+    Dim strViewNames As String
+
+    If ThisDrawing.Views.Count > 0 Then
+        For Each objView In ThisDrawing.Views
+            strViewNames = strViewNames & objView.Name & vbCrLf
+        Next
+        MsgBox "The following views are saved for this drawing:" & vbCrLf _
+                & strViewNames
+    Else
+        MsgBox "There are no saved View objects in the Views collection."
+    End If
+End Sub
+
+Public Sub AddView()
+    Dim objView As AcadView
+    Dim objActViewPort As AcadViewport
+    Dim strNewViewName As String
+    Dim varCenterPoint As Variant
+    Dim dblPoint(1) As Double
+
+    strNewViewName = InputBox("Enter name for new view: ")
+    If strNewViewName = "" Then Exit Sub
+    
+    On Error Resume Next
+    Set objView = ThisDrawing.Views.Item(strNewViewName)
+    If objView Is Nothing Then
+        Set objView = ThisDrawing.Views.Add(strNewViewName)
+        ThisDrawing.ActiveSpace = acModelSpace
+
+        varCenterPoint = ThisDrawing.GetVariable("VIEWCTR")
+        dblPoint(0) = varCenterPoint(0): dblPoint(1) = varCenterPoint(1)
+
+        Set objActViewPort = ThisDrawing.ActiveViewport
+  
+        'Current view info. is stored in the new AcadView object
+     With objView
+        .Center = dblPoint
+        .Direction = ThisDrawing.GetVariable("VIEWDIR")
+        .Height = objActViewPort.Height
+        .Target = objActViewPort.Target
+        .Width = objActViewPort.Width
+     End With
+  
+        MsgBox "A new view called " & objView.Name & _
+               " has been added to the Views collection."
+    Else
+        MsgBox "This view already exists."
+    End If
+End Sub
+
+Public Sub SetView()
+Dim objView As AcadView
+Dim objActViewPort As AcadViewport
+Dim strViewName As String
+
+    ThisDrawing.ActiveSpace = acModelSpace
+    Set objActViewPort = ThisDrawing.ActiveViewport
+    'Redefine the current ViewPort with the View info
+    strViewName = InputBox("Enter the view you require.")
+    
+    If strViewName = "" Then Exit Sub
+    
+    On Error Resume Next
+    Set objView = ThisDrawing.Views.Item(strViewName)
+    If Not objView Is Nothing Then
+        objActViewPort.SetView objView
+        ThisDrawing.ActiveViewport = objActViewPort
+    Else
+        MsgBox "View was not recognized."
+    End If    
+End Sub
+
+Public Sub DeleteView()
+Dim objView As AcadView
+Dim strViewName As String
+Dim strExistingViewNames As String
+
+    For Each objView In ThisDrawing.Views
+        strExistingViewNames = strExistingViewNames & objView.Name & vbCrLf
+    Next
+    
+    strViewName = InputBox("Existing Views: " & vbCrLf & _
+                         strExistingViewNames & vbCrLf & _
+                         "Enter the view you wish to delete from the list.")
+    If strViewName = "" Then Exit Sub
+    
+    On Error Resume Next
+    Set objView = ThisDrawing.Views.Item(strViewName)
+    If Not objView Is Nothing Then
+        objView.Delete
+    Else
+        MsgBox "View was not recognized."
+    End If    
+End Sub
+
+Public Sub CreateViewport()
+Dim objViewPort As AcadViewport
+Dim objCurrentViewport As AcadViewport
+Dim varLowerLeft As Variant
+Dim dblViewDirection(2) As Double
+Dim strViewPortName As String
+  
+    strViewPortName = InputBox("Enter a name for the new viewport.")
+    'user cancelled
+    If strViewPortName = "" Then Exit Sub
+    'check if viewport already exists
+    On Error Resume Next
+    Set objViewPort = ThisDrawing.Viewports.Item(strViewPortName)
+    If Not objViewPort Is Nothing Then
+        MsgBox "Viewport already exists"
+        Exit Sub
+    End If
+  
+    'Create a new viewport
+    Set objViewPort = ThisDrawing.Viewports.Add(strViewPortName)
+   
+    'Split the screen viewport into 4 windows
+    objViewPort.Split acViewport4
+    
+    For Each objCurrentViewport In ThisDrawing.Viewports
+        If objCurrentViewport.LowerLeftCorner(0) = 0 Then
+            If objCurrentViewport.LowerLeftCorner(1) = 0 Then
+                'this takes care of Top view
+                dblViewDirection(0) = 0
+                dblViewDirection(1) = 0
+                dblViewDirection(2) = 1
+                objCurrentViewport.Direction = dblViewDirection
+            Else
+                'this takes care of Front view
+                dblViewDirection(0) = 0
+                dblViewDirection(1) = -1
+                dblViewDirection(2) = 0
+                objCurrentViewport.Direction = dblViewDirection
+            End If
+        End If
+        If objCurrentViewport.LowerLeftCorner(0) = 0.5 Then
+            If objCurrentViewport.LowerLeftCorner(1) = 0 Then
+                'this takes care of the Right view
+                dblViewDirection(0) = 1
+                dblViewDirection(1) = 0
+                dblViewDirection(2) = 0
+                objCurrentViewport.Direction = dblViewDirection
+             Else
+               'this takes care of the Isometric view
+                dblViewDirection(0) = 1
+                dblViewDirection(1) = -1
+                dblViewDirection(2) = 1
+                objCurrentViewport.Direction = dblViewDirection
+            End If
+        End If
+    Next
+    'make viewport active to see effects of changes
+    ThisDrawing.ActiveViewport = objViewPort
+End Sub
+
+For Each objCurrentViewport In ThisDrawing.Viewports
+  If objCurrentViewport.LowerLeftCorner(0) = 0 Then
+    If objCurrentViewport.LowerLeftCorner(1) = 0 Then
+      'this takes care of Top view
+       dblViewDirection(0) = 0
+       dblViewDirection(1) = 0
+       dblViewDirection(2) = 1
+       objCurrentViewport.Direction = dblViewDirection
+    Else
+       'this takes care of Front view
+       dblViewDirection(0) = 0
+       dblViewDirection(1) = -1
+       dblViewDirection(2) = 0
+       objCurrentViewport.Direction = dblViewDirection
+    End If
+  End If
+
+  If objCurrentViewport.LowerLeftCorner(0) = 0.5 Then
+    If objCurrentViewport.LowerLeftCorner(1) = 0 Then
+       'this takes care of the Right view
+       dblViewDirection(0) = 1
+       dblViewDirection(1) = 0
+       dblViewDirection(2) = 0
+       objCurrentViewport.Direction = dblViewDirection
+    Else
+       'this takes care of the Isometric view
+        dblViewDirection(0) = 1
+        dblViewDirection(1) = -1
+        dblViewDirection(2) = 1
+       objCurrentViewport.Direction = dblViewDirection
+    End If
+  End If
+Next
+
+Public Sub CreatePViewports()
+Dim objTopVPort As AcadPViewport
+Dim objFrontVPort As AcadPViewport
+Dim objRightVPort As AcadPViewport
+Dim objIsoMetricVPort As AcadPViewport
+Dim objLayout As AcadLayout
+Dim objAcadObject As AcadObject
+Dim dblPoint(2) As Double
+Dim dblViewDirection(2) As Double
+Dim dblOrigin(1) As Double
+Dim dblHeight As Double
+Dim dblWidth As Double
+Dim varMarginLL As Variant
+Dim varMarginUR As Variant
+  
+    ThisDrawing.ActiveSpace = acPaperSpace
+  
+    Set objLayout = ThisDrawing.ActiveLayout
+    dblOrigin(0) = 0: dblOrigin(1) = 0
+  
+    objLayout.PlotOrigin = dblOrigin
+    If objLayout.PlotRotation = ac0degrees Or objLayout.PlotRotation = _
+                                              ac180degrees Then
+        objLayout.GetPaperSize dblWidth, dblHeight
+    Else
+        objLayout.GetPaperSize dblHeight, dblWidth
+    End If
+  
+    objLayout.GetPaperMargins varMarginLL, varMarginUR
+
+    dblWidth = dblWidth - (varMarginUR(0) + varMarginLL(0))
+    dblHeight = dblHeight - (varMarginUR(1) + varMarginLL(1))
+    dblWidth = dblWidth / 2#
+    dblHeight = dblHeight / 2#
+    
+    'Clear the layout of old PViewports
+    For Each objAcadObject In ThisDrawing.PaperSpace
+        If TypeName(objAcadObject) = "IAcadPViewport" Then
+        objAcadObject.Delete
+        End If
+    Next
+        
+    'create Top Viewport
+    dblPoint(0) = dblWidth - dblWidth * 0.5 '25
+    dblPoint(1) = dblHeight - dblHeight * 0.5 '75
+    dblPoint(2) = 0#
+  
+    Set objTopVPort = ThisDrawing.PaperSpace.AddPViewport(dblPoint, _
+                                                        dblWidth, dblHeight)
+
+    'need to set view direction
+    dblViewDirection(0) = 0
+    dblViewDirection(1) = 0
+    dblViewDirection(2) = 1
+    objTopVPort.Direction = dblViewDirection
+    
+    objTopVPort.Display acOn
+    ThisDrawing.MSpace = True
+    
+    ThisDrawing.ActivePViewport = objTopVPort
+    ThisDrawing.Application.ZoomExtents
+    ThisDrawing.Application.ZoomScaled 0.5, acZoomScaledRelativePSpace
+  
+    'create Front Viewport
+    dblPoint(0) = dblWidth - dblWidth * 0.5
+    dblPoint(1) = dblHeight + dblHeight * 0.5
+    dblPoint(2) = 0
+
+    Set objFrontVPort = ThisDrawing.PaperSpace.AddPViewport(dblPoint, _
+                                                        dblWidth, dblHeight)
+
+    'need to set view direction
+    dblViewDirection(0) = 0
+    dblViewDirection(1) = -1
+    dblViewDirection(2) = 0
+    objFrontVPort.Direction = dblViewDirection
+    
+    objFrontVPort.Display acOn
+    ThisDrawing.MSpace = True
+  
+    ThisDrawing.ActivePViewport = objFrontVPort
+    ThisDrawing.Application.ZoomExtents
+    ThisDrawing.Application.ZoomScaled 0.5, acZoomScaledRelativePSpace
+
+    'create Right Viewport
+    dblPoint(0) = dblWidth + dblWidth * 0.5
+    dblPoint(1) = dblHeight - dblHeight * 0.5
+    dblPoint(2) = 0
+
+    Set objRightVPort = ThisDrawing.PaperSpace.AddPViewport(dblPoint, _
+                                                        dblWidth, dblHeight)
+    
+    'need to set view direction
+    dblViewDirection(0) = 1
+    dblViewDirection(1) = 0
+    dblViewDirection(2) = 0
+    objRightVPort.Direction = dblViewDirection
+  
+    objRightVPort.Display acOn
+    ThisDrawing.MSpace = True
+  
+    ThisDrawing.ActivePViewport = objRightVPort
+    ThisDrawing.Application.ZoomExtents
+    ThisDrawing.Application.ZoomScaled 0.5, acZoomScaledRelativePSpace
+
+    'create Isometric Viewport
+    dblPoint(0) = dblWidth + dblWidth * 0.5
+    dblPoint(1) = dblHeight + dblHeight * 0.5
+    dblPoint(2) = 0
+
+    Set objIsoMetricVPort = ThisDrawing.PaperSpace.AddPViewport(dblPoint, _
+                                                        dblWidth, dblHeight)
+
+    'need to set view direction
+    dblViewDirection(0) = 1
+    dblViewDirection(1) = -1
+    dblViewDirection(2) = 1
+    objIsoMetricVPort.Direction = dblViewDirection
+  
+    objIsoMetricVPort.Display acOn
+    ThisDrawing.MSpace = True
+  
+    ThisDrawing.ActivePViewport = objIsoMetricVPort
+    ThisDrawing.Application.ZoomExtents
+    ThisDrawing.Application.ZoomScaled 0.5, acZoomScaledRelativePSpace
+
+    'make paper space active again and we’re almost done
+    ThisDrawing.ActiveSpace = acPaperSpace
+    ThisDrawing.Application.ZoomExtents
+  
+    'regen in all viewports
+    ThisDrawing.Regen acAllViewports
+End Sub

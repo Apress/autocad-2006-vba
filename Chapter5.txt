@@ -1,0 +1,98 @@
+Dim PrefProfiles As AcadPreferencesProfiles
+
+Set PrefProfiles = ThisDrawing.Application.Preferences.Profiles
+
+strSetPaths = ThisDrawing.Application.Preferences.Files.SupportPath
+
+Dim strNewPath As String, strSetPath As String
+strNewPath = ;c:\cadfiles\apress\dvb
+strSetPath = ThisDrawing.Application.Preferences.Files.SupportPath
+
+If Len(strSetPath & strNewPath) < 256 Then
+  strNewPath = strSetPath & strNewPath
+  ThisDrawing.Application.Preferences.Files.SupportPath = strNewPath
+End If
+
+intCursorSize = ThisDrawing.Application.Preferences.Display.CursorSize
+'The value of the CursorSize property is a positive integer that represents the percentage of 'the cursor size to the screen size. The default value is 5, the minimum is 1, and the 'maximum is 100. All other values will generate an error. 
+'The following example prompts the user to enter a value for the cursor size, and if the 'returned value lies between 1 and 100, the size is changed. Otherwise, the user is informed 'that he or she has entered an invalid value.
+Dim intCursorSize As Integer
+
+intCursorSize = ThisDrawing.Utility.GetInteger(vbCrLf & _
+    "Enter number for size of cursor proportional to screen size" & vbCrLf)
+
+If intCursorSize < 1 Or intCursorSize > 100 Then
+    MsgBox "Cursor Size value must be between 1 and 100"
+  Else
+    ThisDrawing.Application.Preferences.Display.CursorSize = intCursorSize
+End If
+
+If ThisDrawing.Application.Preferences.OpenSave.AutoSaveInterval <> 15 Then
+    ThisDrawing.Application.Preferences.OpenSave.AutoSaveInterval = 15
+    MsgBox "The autosave interval has been changed to 15 minutes."
+End If
+
+strTemplatePath = ThisDrawing.Application.Preferences.Files.TemplateDwgPath
+
+ThisDrawing.Application.Preferences.Files.TemplateDwgPath = _
+"C:\Program " &  "Files\AutoCAD 2006\Templates"
+
+Dim strPC3Path As String
+strPC3Path = c:\cadfiles\plotconfigs
+
+ThisDrawing.Application.Preferences.Files.PrinterConfigPath = strPC3Path
+
+Public Sub SaveAsType()
+Dim iSaveAsType As Integer
+  iSaveAsType = ThisDrawing.Application.Preferences.OpenSave.SaveAsType
+  Select Case iSaveAsType
+    Case acR12_dxf
+      MsgBox "Current save as format is R12_DXF", vbInformation
+    Case ac2000_dwg
+      MsgBox "Current save as format is 2000_DWG", vbInformation
+    Case ac2000_dxf
+      MsgBox "Current save as format is 2000_DXF", vbInformation
+    Case ac2000_Template
+      MsgBox "Current save as format is 2000_Template", vbInformation
+    Case ac2004_dwg, acNative
+      MsgBox "Current save as format is 2004_DWG", vbInformation
+    Case ac2004_dxf
+      MsgBox "Current save as format is 2004_DXF", vbInformation
+    Case ac2004_Template
+      MsgBox "Current save as format is 2004_Template", vbInformation
+    Case acUnknown
+      MsgBox "Current save as format is Unknown or Read-Only", vbInformation
+  End Select
+End Sub
+
+ThisDrawing.Application.Preferences.OpenSave.SaveAsType = ac2000_dwg
+
+ThisDrawing.Application.Preferences.System.EnableStartupDialog = False
+
+Dim strActiveProfile as String
+
+strActiveProfile = ThisDrawing.Application.Preferences.Profiles.ActiveProfile
+
+ThisDrawing.Application.Preferences.Profiles.ExportProfile _
+    strActiveProfile, "C:\MYPROFILE.ARG"
+Dim strMyProfile As String
+
+'name of profile
+strMyProfile = "My Personal Profile"
+
+ThisDrawing.Application.Preferences.Profiles.ImportProfile _
+    strMyProfile, "C:\MYPROFILE.ARG", True
+
+ThisDrawing.Application.Preferences.Profiles.ActiveProfile = strMyProfile
+
+Dim strActiveProfile As String
+Dim strMyProfile As String
+strMyProfile = "My Personal Profile"
+strActiveProfile = ThisDrawing.Application.Preferences.Profiles.ActiveProfile
+
+With ThisDrawing.Application.Preferences.Profiles
+  .RenameProfile strActiveProfile " MyBackupProfile"
+  .ImportProfile strMyProfile, "C:\MYPROFILE.ARG ",True
+  .ActiveProfile = strMyProfile
+  .DeleteProfile "MyBackupProfile"
+End With

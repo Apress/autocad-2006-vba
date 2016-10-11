@@ -1,0 +1,199 @@
+Public Sub PlotPreview()
+    If MsgBox("Would you like to display a full preview?", vbYesNo) = vbYes Then
+        ThisDrawing.Plot.DisplayPlotPreview acFullPreview
+    End If
+End Sub
+
+Public Sub PlotLayouts()
+Dim objLayout As AcadLayout
+Dim strLayoutList() As String
+Dim intCount As Integer
+Dim objPlot As AcadPlot
+
+    intCount = -1
+    For Each objLayout In ThisDrawing.Layouts
+      If MsgBox("Do you wish to plot the layout: " _
+                & objLayout.Name, vbYesNo) = vbYes Then
+        intCount = intCount + 1
+        ReDim Preserve strLayoutList(intCount)
+          strLayoutList(intCount) = objLayout.Name
+      End If
+    Next objLayout
+    
+    Set objPlot = ThisDrawing.Plot
+    objPlot.SetLayoutsToPlot strLayoutList
+    objPlot.PlotToDevice
+End Sub
+
+Public Sub AddPConfig()
+Dim objPlotConfigs As AcadPlotConfigurations
+Dim objPlotConfig As AcadPlotConfiguration
+
+  Set objPlotConfigs = ThisDrawing.PlotConfigurations
+  Set objPlotConfig = objPlotConfigs.Add("PlotConfig1", True)  
+End Sub
+
+Public Sub PlotView()
+Dim intCount As Integer
+Dim strViewToPlot As String
+Dim objView As AcadView
+Dim strFilename As String
+
+    strViewToPlot = InputBox("Enter name of view to plot: ", "Plot View")
+   
+On Error Resume Next
+    Set objView = ThisDrawing.Views(strViewToPlot)
+    If objView Is Nothing Then
+        MsgBox "This view does not exist"
+        Exit Sub
+    End If
+    
+    strFilename = InputBox("Enter a filename to plot to")
+    If strFilename = "" Then Exit Sub
+    
+    'set view to plot
+    ThisDrawing.ModelSpace.Layout.ViewToPlot = strViewToPlot
+    ThisDrawing.ModelSpace.Layout.PlotType = acView
+    
+    'Initiate the plot
+    ThisDrawing.Plot.PlotToFile strFilename
+End Sub
+
+Public Sub PlotWindow()
+Dim varLowerLeftCorner As Variant
+Dim varUpperRightCorner As Variant
+Dim dblLowerLeftCorner(1) As Double
+Dim dblUpperRightCorner(1) As Double
+Dim intCount As Integer
+Dim strFilename As String
+
+    'set the plot type
+    varLowerLeftCorner = ThisDrawing.Utility.GetPoint(, _
+                                     "Select lower-left corner of window: ")
+    varUpperRightCorner = ThisDrawing.Utility.GetCorner(varLowerLeftCorner, _
+                                    "Select upper-right corner of window: ")
+    For intCount = 0 To 1
+        dblLowerLeftCorner(intCount) = CDbl(varLowerLeftCorner(intCount))
+        dblUpperRightCorner(intCount) = CDbl(varUpperRightCorner(intCount))
+    Next intCount
+    ThisDrawing.ActiveLayout.SetWindowToPlot dblLowerLeftCorner, _
+                                             dblUpperRightCorner
+  
+    ThisDrawing.ActiveLayout.PlotType = acWindow
+    'initiate the plot
+    strFilename = InputBox("Enter a filename to plot to")
+    If strFilename = "" Then Exit Sub
+ 
+    ThisDrawing.Plot.PlotToFile strFilename
+End Sub
+
+Public Sub PaperSizeNames()
+    MsgBox "The paper size for the active layout is " & _  
+           ThisDrawing.ActiveLayout.CanonicalMediaName
+End Sub
+
+Public Sub PaperSize()
+Dim varPaperSizeNames As Variant
+Dim strPaperSizeNames As String
+Dim intCount As Integer
+Dim strChoosenPaperSize As String
+    
+    varPaperSizeNames = ThisDrawing.ActiveLayout.GetCanonicalMediaNames
+    strPaperSizeNames = "These are the paper sizes available:" & vbCrLf
+    For intCount = 0 To UBound(varPaperSizeNames)
+        strPaperSizeNames = strPaperSizeNames & _
+                varPaperSizeNames(intCount) & ", "
+    Next intCount
+    strPaperSizeNames = strPaperSizeNames & vbCrLf & " Please choose one."
+    
+    strChoosenPaperSize = InputBox(strPaperSizeNames, "Pick a paper size")
+    
+    For intCount = 0 To UBound(varPaperSizeNames)
+        If StrComp(strChoosenPaperSize, varPaperSizeNames(intCount), 1) = 0 _
+            Then GoTo DisplaySize
+    Next intCount
+    MsgBox "You did not enter a valid paper size name."
+    Exit Sub
+
+DisplaySize:
+Dim dblPaperWidth As Double
+Dim dblPaperHeight As Double
+Dim lngPaperUnits As Long
+Dim strPaperUnits As String
+
+    ThisDrawing.ActiveLayout.GetPaperSize dblPaperWidth, dblPaperHeight
+    lngPaperUnits = ThisDrawing.ActiveLayout.PaperUnits
+    Select Case lngPaperUnits
+        Case 0
+           strPaperUnits = "inches"
+           dblPaperWidth = dblPaperWidth / 25.4
+           dblPaperHeight = dblPaperHeight / 25.4 
+        Case 1
+        strPaperUnits = "millimeters"
+    End Select
+    MsgBox dblPaperWidth & " by " & dblPaperHeight & " " & strPaperUnits
+End Sub
+
+Public Sub GetScales()
+Dim objLayout As AcadLayout
+Dim dblNumerator As Double
+Dim dblDenominator As Double
+
+    For Each objLayout In ThisDrawing.Layouts
+        'Get custom scale information
+        objLayout.GetCustomScale dblNumerator, dblDenominator
+        If objLayout.PaperUnits = acInches Then
+            MsgBox "The scale of " & objLayout.Name & _
+                   " is " & dblNumerator & " inches = " & _
+                   dblDenominator & " Drawing Units"
+        ElseIf objLayout.PaperUnits = acMillimeters Then
+            MsgBox "The scale of " & objLayout.Name & _
+                   " is " & dblNumerator & " millimeters = " & _
+                   dblDenominator & " Drawing Units"
+        Else
+        MsgBox "The scale of " & objLayout.Name & " is " & _
+                dblNumerator & " pixels = " & dblDenominator & _
+               " Drawing Units"
+    End If
+  Next
+End Sub
+
+Public Sub UseStandardScale()
+Dim objLayout As AcadLayout
+
+    For Each objLayout In ThisDrawing.Layouts
+        If objLayout.UseStandardScale Then
+            MsgBox "The scale of " & objLayout.Name & " is a Standard scale"
+        Else
+            MsgBox "The scale of " & objLayout.Name & " is a Custom scale"
+        End If
+    Next
+End Sub
+
+Public Sub PlotAngle()
+Dim strPlotAngle As String
+Dim lngStoreAngle As Long
+
+    lngStoreAngle = ThisDrawing.ActiveLayout.PlotRotation
+    strPlotAngle = InputBox("For a plot preview please enter the angle" & _
+                   "(in degrees: 0, 90, 180 or 270) that you would like" & _
+                   " your layout plotted at", , "0")
+
+    Select Case strPlotAngle
+      Case "0"
+          ThisDrawing.ActiveLayout.PlotRotation = ac0degrees
+      Case "90"
+         ThisDrawing.ActiveLayout.PlotRotation = ac90degrees
+     Case "180"
+         ThisDrawing.ActiveLayout.PlotRotation = ac180degrees
+      Case "270"
+         ThisDrawing.ActiveLayout.PlotRotation = ac270degrees
+      Case Else
+        MsgBox "You entered an invalid value"
+        Exit Sub
+    End Select
+    ThisDrawing.Regen acActiveViewport
+    ThisDrawing.Plot.DisplayPlotPreview acFullPreview
+    ThisDrawing.ActiveLayout.PlotRotation = lngStoreAngle
+    ThisDrawing.Regen acActiveViewport
+End Sub

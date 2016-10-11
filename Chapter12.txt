@@ -1,0 +1,634 @@
+Public Sub TestAddSelectionSet()
+      Dim objSS As AcadSelectionSet
+      Dim strName As String
+    
+On Error Resume Next
+    '' get a name from user
+    strName = InputBox("Enter a new selection set name: ")
+    If "" = strName Then Exit Sub
+            
+    '' create it
+    Set objSS = ThisDrawing.SelectionSets.Add(strName)
+    
+    '' check if it was created
+    If objSS Is Nothing Then
+        MsgBox "Unable to Add '" & strName & "'"
+    Else
+        MsgBox "Added selection set '" & objSS.Name & "'"
+    End If
+End Sub
+
+Public Sub ListSelectionSets()
+      Dim objSS As AcadSelectionSet
+      Dim strSSList As String
+
+    For Each objSS In ThisDrawing.SelectionSets
+        strSSList = strSSList & vbCr & objSS.Name
+    Next
+    MsgBox strSSList, , "List of Selection Sets"
+End Sub
+
+Public Sub TestSelect()
+      Dim objSS As AcadSelectionSet
+      Dim varPnt1 As Variant
+      Dim varPnt2 As Variant
+      Dim strOpt As String
+      Dim lngMode As Long
+
+On Error GoTo Done
+    With ThisDrawing.Utility
+    
+        '' get input for mode
+        .InitializeUserInput 1, "Window Crossing Previous Last All"
+        strOpt = .GetKeyword(vbCr & _
+        "Select [Window/Crossing/Previous/Last/All]: ")
+        
+        '' convert keyword into mode
+        Select Case strOpt
+        Case "Window":  lngMode = acSelectionSetWindow
+        Case "Crossing":  lngMode = acSelectionSetCrossing
+        Case "Previous":  lngMode = acSelectionSetPrevious
+        Case "Last":  lngMode = acSelectionSetLast
+        Case "All":  lngMode = acSelectionSetAll
+        End Select
+        
+        '' create a new selectionset
+        Set objSS = ThisDrawing.SelectionSets.Add("TestSelectSS")
+                
+        '' if it's window or crossing, get the points
+        If "Window" = strOpt Or "Crossing" = strOpt Then
+            
+            '' get first point
+            .InitializeUserInput 1
+            varPnt1 = .GetPoint(, vbCr & "Pick the first corner: ")
+            
+            '' get corner, using dashed lines if crossing
+            .InitializeUserInput 1 + IIf("Crossing" = strOpt, 32, 0)
+            varPnt2 = .GetCorner(varPnt1, vbCr & "Pick other corner: ")
+            
+            '' select entities using points
+            objSS.Select lngMode, varPnt1, varPnt2
+        Else
+        
+            '' select entities using mode
+            objSS.Select lngMode
+        End If
+            
+        '' highlight the selected entities
+        objSS.Highlight True
+    
+        '' pause for the user
+        .GetString False, vbCr & "Enter to continue"
+        
+        '' dehighlight the entities
+        objSS.Highlight False
+    
+    End With
+        
+Done:
+
+    '' if the selectionset was created, delete it
+    If Not objSS Is Nothing Then
+        objSS.Delete
+    End If
+End Sub
+
+Public Sub TestSelectionSetFilter()
+      Dim objSS As AcadSelectionSet
+      Dim intCodes(0) As Integer
+      Dim varCodeValues(0) As Variant
+      Dim strName As String
+        
+On Error GoTo Done
+
+    With ThisDrawing.Utility
+        strName = .GetString(True, vbCr & "Layer name to filter: ")
+        If "" = strName Then Exit Sub
+        
+        '' create a new selectionset
+        Set objSS = ThisDrawing.SelectionSets.Add("TestSelectionSetFilter")
+                
+        '' set the code for layer
+        intCodes(0) = 8
+        
+        '' set the value specified by user
+        varCodeValues(0) = strName
+        
+        '' filter the objects
+        objSS.Select acSelectionSetAll, , , intCodes, varCodeValues
+                
+        '' highlight the selected entities
+        objSS.Highlight True
+    
+        '' pause for the user
+        .Prompt vbCr & objSS.Count & " entities selected"
+        .GetString False, vbLf & "Enter to continue "
+        
+        '' dehighlight the entities
+        objSS.Highlight False
+    End With
+    
+Done:
+    
+    '' if the selection was created, delete it
+    If Not objSS Is Nothing Then
+        objSS.Delete
+    End If
+End Sub
+
+Public Sub TestSelectionSetOperator()
+      Dim objSS As AcadSelectionSet
+      Dim intCodes() As Integer
+      Dim varCodeValues As Variant
+      Dim strName As String
+        
+On Error GoTo Done
+    With ThisDrawing.Utility
+        strName = .GetString(True, vbCr & "Layer name to exclude: ")
+        If "" = strName Then Exit Sub
+        
+        '' create a new selectionset
+        Set objSS = ThisDrawing.SelectionSets.Add("TestSelectionSetOperator")
+        
+        '' using 9 filters
+        ReDim intCodes(9):  ReDim varCodeValues(9)
+        
+        '' set codes and values - indented for clarity
+        intCodes(0) = -4:  varCodeValues(0) = "<and"
+        intCodes(1) = -4:    varCodeValues(1) = "<or"
+        intCodes(2) = 0:       varCodeValues(2) = "line"
+        intCodes(3) = 0:       varCodeValues(3) = "arc"
+        intCodes(4) = 0:       varCodeValues(4) = "circle"
+        intCodes(5) = -4:    varCodeValues(5) = "or>"
+        intCodes(6) = -4:    varCodeValues(6) = "<not"
+        intCodes(7) = 8:       varCodeValues(7) = strName
+        intCodes(8) = -4:    varCodeValues(8) = "not>"
+        intCodes(9) = -4:  varCodeValues(9) = "and>"
+        
+        '' filter the objects
+        objSS.Select acSelectionSetAll, , , intCodes, varCodeValues
+                
+        '' highlight the selected entities
+        objSS.Highlight True
+    
+        '' pause for the user
+        .Prompt vbCr & objSS.Count & " entities selected"
+        .GetString False, vbLf & "Enter to continue "
+        
+        '' dehighlight the entities
+        objSS.Highlight False
+    End With
+    
+Done:
+    
+    '' if the selection was created, delete it
+    If Not objSS Is Nothing Then
+        objSS.Delete
+    End If
+End Sub
+
+Public Sub TestSelectOnScreen()
+      Dim objSS As AcadSelectionSet
+    
+      On Error GoTo Done
+    With ThisDrawing.Utility
+        
+        '' create a new selectionset
+        Set objSS = ThisDrawing.SelectionSets.Add("TestSelectOnScreen")
+                
+        '' let user select entities interactively
+        objSS.SelectOnScreen
+        
+        '' highlight the selected entities
+        objSS.Highlight True
+    
+        '' pause for the user
+        .Prompt vbCr & objSS.Count & " entities selected"
+        .GetString False, vbLf & "Enter to continue "
+        
+        '' dehighlight the entities
+        objSS.Highlight False
+    
+    End With
+        
+Done:
+
+    '' if the selection was created, delete it
+    If Not objSS Is Nothing Then
+        objSS.Delete
+    End If
+End Sub
+
+Public Sub TestSelectAtPoint()
+      Dim varPick As Variant
+      Dim objSS As AcadSelectionSet
+    
+      On Error GoTo Done
+
+    With ThisDrawing.Utility
+        
+        '' create a new selectionset
+        Set objSS = ThisDrawing.SelectionSets.Add("TestSelectAtPoint")
+                
+        '' get a point of selection from the user
+        varPick = .GetPoint(, vbCr & "Select entities at a point: ")
+                
+        '' let user select entities interactively
+        objSS.SelectAtPoint varPick
+        
+        '' highlight the selected entities
+        objSS.Highlight True
+    
+        '' pause for the user
+        .Prompt vbCr & objSS.Count & " entities selected"
+        .GetString False, vbLf & "Enter to continue "
+        
+        '' dehighlight the entities
+        objSS.Highlight False
+    
+    End With
+        
+Done:
+
+    '' if the selection was created, delete it
+    If Not objSS Is Nothing Then
+        objSS.Delete
+    End If
+End Sub
+
+Public Sub TestSelectByPolygon()
+      Dim objSS As AcadSelectionSet
+      Dim strOpt As String
+      Dim lngMode As Long
+      Dim varPoints As Variant
+    
+      On Error GoTo Done
+    With ThisDrawing.Utility
+        
+        '' create a new selectionset
+        Set objSS = ThisDrawing.SelectionSets.Add("TestSelectByPolygon1")
+                
+        '' get the mode from the user
+        .InitializeUserInput 1, "Fence Window Crossing"
+        strOpt = .GetKeyword(vbCr & "Select by [Fence/Window/Crossing]: ")
+                
+        '' convert keyword into mode
+        Select Case strOpt
+        	Case "Fence":  lngMode = acSelectionSetFence
+        	Case "Window":  lngMode = acSelectionSetWindowPolygon
+        	Case "Crossing":  lngMode = acSelectionSetCrossingPolygon
+        End Select
+        
+        '' let user digitize points
+        varPoints = InputPoints()
+        
+        '' select entities using mode and points specified
+        objSS.SelectByPolygon lngMode, varPoints
+        
+        '' highlight the selected entities
+        objSS.Highlight True
+    
+        '' pause for the user
+        .Prompt vbCr & objSS.Count & " entities selected"
+        .GetString False, vbLf & "Enter to continue "
+        
+        '' dehighlight the entities
+        objSS.Highlight False
+    
+    End With
+        
+Done:
+
+    '' if the selection was created, delete it
+    If Not objSS Is Nothing Then
+        objSS.Delete
+    End If
+End Sub
+
+Function InputPoints() As Variant
+      Dim varStartPoint As Variant
+      Dim varNextPoint As Variant
+      Dim varWCSPoint As Variant
+      Dim lngLast As Long
+      Dim dblPoints() As Double
+    
+      On Error Resume Next
+    '' get first points from user
+    With ThisDrawing.Utility
+        .InitializeUserInput 1
+        varStartPoint = .GetPoint(, vbLf & "Pick the start point: ")
+    
+        '' setup initial point
+        ReDim dblPoints(2)
+        dblPoints(0) = varStartPoint(0)
+        dblPoints(1) = varStartPoint(1)
+        dblPoints(2) = varStartPoint(2)
+        varNextPoint = varStartPoint
+        
+        '' append vertexes in a loop
+        Do
+            '' translate picked point to UCS for basepoint below
+            varWCSPoint = .TranslateCoordinates(varNextPoint, acWorld, _
+                                                acUCS, True)
+            
+            '' get user point for new vertex, use last pick as basepoint
+            varNextPoint = .GetPoint(varWCSPoint, vbCr & _
+                                     "Pick another point <exit>: ")
+            
+            '' exit loop if no point picked
+            If Err Then Exit Do
+            
+            '' get the upper bound
+            lngLast = UBound(dblPoints)
+            
+            '' expand the array
+            ReDim Preserve dblPoints(lngLast + 3)
+                        
+            '' add the new point
+            dblPoints(lngLast + 1) = varNextPoint(0)
+            dblPoints(lngLast + 2) = varNextPoint(1)
+            dblPoints(lngLast + 3) = varNextPoint(2)
+        Loop
+    End With
+    
+    '' return the points
+    InputPoints = dblPoints
+End Function
+
+Public Sub TestSelectAddRemoveClear()
+      Dim objSS As AcadSelectionSet
+      Dim objSStmp As AcadSelectionSet
+      Dim strType As String
+      Dim objEnts() As AcadEntity
+      Dim intI As Integer
+   
+      On Error Resume Next
+
+    With ThisDrawing.Utility
+        '' create a new selectionset
+        Set objSS = ThisDrawing.SelectionSets.Add("ssAddRemoveClear")
+        If Err Then GoTo Done
+                
+        '' create a new temporary selection
+        Set objSStmp = ThisDrawing.SelectionSets.Add("ssAddRemoveClearTmp")
+        If Err Then GoTo Done
+        
+        '' loop until the user has finished
+        Do
+            '' clear any pending errors
+            Err.Clear
+        
+            '' get input for type
+            .InitializeUserInput 1, "Add Remove Clear Exit"
+            strType = .GetKeyword(vbCr & "Select [Add/Remove/Clear/Exit]: ")
+                
+            '' branch based on input
+            If "Exit" = strType Then
+            
+                '' exit if requested
+                Exit Do
+                
+            ElseIf "Clear" = strType Then
+                
+                '' dehighlight the main selection
+                objSS.Highlight False
+                
+                '' clear the main set
+                objSS.Clear
+            
+            '' otherwise, we're adding/removing
+            Else
+            
+                '' clear the temporary selection
+                objSStmp.Clear
+        
+                objSStmp.SelectOnScreen
+                '' highlight the temporary selection
+                objSStmp.Highlight True
+                
+                '' convert temporary selection to array
+
+                '' resize the entity array to the selection size
+                ReDim objEnts(objSStmp.Count - 1)
+    
+                '' copy entities from the selection to entity array
+                For intI = 0 To objSStmp.Count - 1
+                    Set objEnts(intI) = objSStmp(intI)
+                Next
+    
+                '' add/remove items from main selection using entity array
+                If "Add" = strType Then
+                    objSS.AddItems objEnts
+                Else
+                    objSS.RemoveItems objEnts
+                End If
+                                    
+                '' dehighlight the temporary selection
+                objSStmp.Highlight False
+                
+                '' highlight the main selection
+                objSS.Highlight True
+            End If
+        Loop
+    End With
+        
+Done:
+
+    '' if the selections were created, delete them
+    If Not objSS Is Nothing Then
+               
+        '' dehighlight the entities
+        objSS.Highlight False
+
+        '' delete the main selection
+        objSS.Delete
+    End If
+    
+    If Not objSStmp Is Nothing Then
+    
+        '' delete the temporary selection
+        objSStmp.Delete
+    End If
+End Sub
+
+Public Sub TestSelectErase()
+      Dim objSS As AcadSelectionSet
+    
+      On Error GoTo Done
+    With ThisDrawing.Utility
+        
+        '' create a new selectionset
+        Set objSS = ThisDrawing.SelectionSets.Add("TestSelectErase")
+                
+        '' let user select entities interactively
+        objSS.SelectOnScreen
+        
+        '' highlight the selected entities
+        objSS.Highlight True
+    
+        '' erase the selected entities
+        objSS.Erase
+        
+        '' prove that the selection is empty (but still viable)
+        .Prompt vbCr & objSS.Count & " entities selected"
+        
+    End With
+        
+Done:
+
+    '' if the selection was created, delete it
+    If Not objSS Is Nothing Then
+        objSS.Delete
+    End If
+End Sub
+
+Private Sub AcadDocument_SelectionChanged()
+      Dim objSS As AcadSelectionSet
+      Dim dblStart As Double
+    
+    '' get the pickfirst selection from drawing
+    Set objSS = ThisDrawing.PickfirstSelectionSet
+    
+    '' highlight the selected entities
+    objSS.Highlight True
+    MsgBox "There are " & objSS.Count & " objects in selection set: " & objSS.Name
+    '' delay for 1/2 second
+    dblStart = Timer
+    Do While Timer < dblStart + 0.5
+    Loop
+        
+    '' dehighlight the selected entities
+    objSS.Highlight False
+End Sub
+
+Public Sub TestAddGroup()
+      Dim objGroup As AcadGroup
+      Dim strName As String
+    
+      On Error Resume Next
+    '' get a name from user
+    strName = InputBox("Enter a new group name: ")
+    If "" = strName Then Exit Sub
+            
+    Set objGroup = ThisDrawing.Groups.Item(strName)
+    '' create it
+    If Not objGroup Is Nothing Then
+        MsgBox "Group already exists"
+        Exit Sub
+    End If
+    
+    Set objGroup = ThisDrawing.Groups.Add(strName)
+   
+    '' check if it was created
+    If objGroup Is Nothing Then
+        MsgBox "Unable to Add '" & strName & "'"
+    Else
+        MsgBox "Added group '" & objGroup.Name & "'"
+    End If
+End Sub
+
+Public Sub ListGroups()
+      Dim objGroup As AcadGroup
+      Dim strGroupList As String
+
+    For Each objGroup In ThisDrawing.Groups
+        strGroupList = strGroupList & vbCr & objGroup.Name
+    Next
+    MsgBox strGroupList, vbOKOnly, "List of Groups"
+End Sub
+
+Public Sub TestGroupAppendRemove()
+      Dim objSS As AcadSelectionSet
+      Dim objGroup As AcadGroup
+      Dim objEnts() As AcadEntity
+      Dim strName As String
+      Dim strOpt As String
+      Dim intI As Integer
+ 
+      On Error Resume Next
+    '' set pickstyle to NOT select groups
+    ThisDrawing.SetVariable "Pickstyle", 2
+    
+    With ThisDrawing.Utility
+        '' get group name from user
+        strName = .GetString(True, vbCr & "Group name: ")
+        If Err Or "" = strName Then GoTo Done
+        
+        '' get the existing group or add new one
+        Set objGroup = ThisDrawing.Groups.Add(strName)
+        
+        '' pause for the user
+        .Prompt vbCr & "Group contains: " & objGroup.Count & " entities" & _
+                vbCrLf
+        
+        '' get input for mode
+        .InitializeUserInput 1, "Append Remove"
+        strOpt = .GetKeyword(vbCr & "Option [Append/Remove]: ")
+        If Err Then GoTo Done
+        
+        '' create a new selectionset
+        Set objSS = ThisDrawing.SelectionSets.Add("TestGroupAppendRemove")
+        If Err Then GoTo Done
+        
+        '' get a selection set from user
+        objSS.SelectOnScreen
+        
+        '' convert selection set to array
+        '' resize the entity array to the selection size
+        ReDim objEnts(objSS.Count - 1)
+    
+        '' copy entities from the selection to entity array
+        For intI = 0 To objSS.Count - 1
+            Set objEnts(intI) = objSS(intI)
+        Next
+    
+        '' append or remove entities based on input
+        If "Append" = strOpt Then
+            objGroup.AppendItems objEnts
+        Else
+            objGroup.RemoveItems objEnts
+        End If
+    
+        '' pause for the user
+        .Prompt vbCr & "Group contains: " & objGroup.Count & " entities"
+        
+        '' dehighlight the entities
+        objSS.Highlight False
+    End With
+        
+Done:
+    If Err Then MsgBox "Error occurred: " & Err.Description
+    '' if the selection was created, delete it
+    If Not objSS Is Nothing Then
+        objSS.Delete
+    End If
+End Sub
+
+Public Sub TestGroupDelete()
+      Dim objGroup As AcadGroup
+      Dim strName As String
+    
+      On Error Resume Next
+    With ThisDrawing.Utility
+    
+        strName = .GetString(True, vbCr & "Group name: ")
+        If Err Or "" = strName Then Exit Sub
+        
+        '' get the existing group
+        Set objGroup = ThisDrawing.Groups.Item(strName)
+        If Err Then
+            .Prompt vbCr & "Group does not exist "
+            Exit Sub
+        End If
+        
+        '' delete the group
+        objGroup.Delete
+        If Err Then
+            .Prompt vbCr & "Error deleting group "
+            Exit Sub
+        End If
+    
+        '' pause for the user
+        .Prompt vbCr & "Group deleted"
+    End With
+End Sub

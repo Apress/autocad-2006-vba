@@ -1,0 +1,46 @@
+Public Sub SaveWithEncryption()
+Dim oSecurity As New AcadSecurityParams
+  With oSecurity
+    .Action = AcadSecurityParamsType.ACADSECURITYPARAMS_ENCRYPT_DATA
+    .Algorithm = AcadSecurityParamsConstants.ACADSECURITYPARAMS_ALGID_RC4
+    .Comment = "Add comment to drawing"
+    .Issuer = "Your Company Name"
+    .KeyLength = 40
+    'AutoCAD converts all passwords to uppercase before applying them
+    .Password = UCase("br549")
+    .ProviderName = "Microsoft Base Cryptographic Provider v1.0"
+    .ProviderType = 1
+    .SerialNumber = "BR549"
+    .Subject = "The Flying DeLorean"
+    .TimeServer = "NIST(time.nist.gov)"
+  End With
+
+  ThisDrawing.SaveAs "C:\MyDrawing.dwg", , oSecurity
+End Sub
+
+Dim sp As New AcadSecurityParams
+sp.Algorithm = AcadSecurityParamsConstants.ACADSECURITYPARAMS_ALGID_RC4
+
+Dim sp As New AcadSecurityParams
+sp.Issuer = "Personal Freemail RSA 2000.8.30"
+
+Dim sp As New AcadSecurityParams
+sp.SerialNumber = "073848"
+
+Dim sp As New AcadSecurityParams
+sp.TimeServer = "NIST(time.nist.gov)"
+
+Public Sub SaveLockedDrawing()
+  ' This example encrypts and saves a file.
+  Dim acadApp As New AcadApplication
+  Dim sp As New AcadSecurityParams
+
+  acadApp.Visible = True
+  sp.Action = AcadSecurityParamsType.ACADSECURITYPARAMS_ENCRYPT_DATA
+  sp.Algorithm =   AcadSecurityParamsConstants.ACADSECURITYPARAMS_ALGID_RC4
+  sp.KeyLength = 40
+  sp.Password = UCase("unique-password)
+  sp.ProviderName = "Microsoft Base Cryptographic Provider v1.0"
+  sp.ProviderType = 1
+  acadApp.ActiveDocument.SaveAs "C:\LockedDrawing1.dwg", , sp
+End Sub

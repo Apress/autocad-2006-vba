@@ -1,0 +1,462 @@
+Public Sub CopyObject()
+      Dim objDrawingObject As AcadEntity
+      Dim objCopiedObject As Object
+      Dim varEntityPickedPoint As Variant
+      Dim varCopyPoint As Variant
+
+On Error Resume Next
+    ThisDrawing.Utility.GetEntity objDrawingObject, varEntityPickedPoint, _
+        "Pick an entity to copy: "
+    If objDrawingObject Is Nothing Then
+        MsgBox "You did not pick an object"
+        Exit Sub
+    End If
+    
+    'Copy the object
+    Set objCopiedObject = objDrawingObject.Copy()
+    varCopyPoint = ThisDrawing.Utility.GetPoint(, "Pick point to copy to: ")
+
+    'put the object in its new position
+    objCopiedObject.Move varEntityPickedPoint, varCopyPoint
+    objCopiedObject.Update
+  
+End Sub
+
+Public Sub DeleteObject()
+      Dim objDrawingObject As AcadEntity
+      Dim varEntityPickedPoint As Variant
+
+On Error Resume Next
+    ThisDrawing.Utility.GetEntity objDrawingObject, varEntityPickedPoint, _
+    "Pick an entity to delete: "
+    If objDrawingObject Is Nothing Then
+        MsgBox "You did not pick an object."
+        Exit Sub
+    End If
+    
+    'delete the object
+    objDrawingObject.Delete 
+End Sub
+
+Public Sub ExplodeRegion()
+      Dim objDrawingObject As AcadEntity
+      Dim varEntityPickedPoint As Variant
+
+On Error Resume Next
+    ThisDrawing.Utility.GetEntity objDrawingObject, varEntityPickedPoint, _
+                                  "Please pick a region object."
+    If objDrawingObject Is Nothing Or _
+       objDrawingObject.ObjectName <> "AcDbRegion" Then
+        MsgBox "You did not choose a region object."
+        Exit Sub
+    End If
+   
+Dim varObjectArray As Variant
+Dim strObjectTypes As String
+Dim intCount As Integer
+        
+    varObjectArray = objDrawingObject.Explode
+    strObjectTypes = "The region you chose has been exploded " & _ 
+             "into the following: " & UBound(varObjectArray) + 1 & " objects:"
+    For intCount = 0 To UBound(varObjectArray)
+        strObjectTypes = strObjectTypes & vbCrLf & _
+                         varObjectArray(intCount).ObjectName
+    Next
+    MsgBox strObjectTypes  
+End Sub
+
+Public Sub ToggleHighlight()
+      Dim objSelectionSet As AcadSelectionSet
+      Dim objDrawingObject As AcadEntity
+
+    'choose a selection set name that you only use as temporary storage and
+    'ensure that it does not currently exist
+    On Error Resume Next
+    ThisDrawing.SelectionSets("TempSSet").Delete
+    Set objSelectionSet = ThisDrawing.SelectionSets.Add("TempSSet")
+
+    'ask user to pick entities on the screen
+    objSelectionSet.SelectOnScreen
+    
+    'change the highlight status of each entity selected
+    For Each objDrawingObject In objSelectionSet
+        objDrawingObject.Highlight True
+        objDrawingObject.Update			‘not required for 2006
+        MsgBox "Notice that the entity is highlighted"
+        objDrawingObject.Highlight False			‘not required for 2006
+        objDrawingObject.Update			‘not required for 2006
+        MsgBox "Notice that the entity is not highlighted"
+    Next
+  
+    objSelectionSet.Delete
+End Sub
+
+Public Sub MirrorObjects()
+      Dim objSelectionSet As AcadSelectionSet
+      Dim objDrawingObject As AcadEntity
+      Dim objMirroredObject As AcadEntity
+      Dim varPoint1 As Variant
+      Dim varPoint2 As Variant
+    
+    ThisDrawing.SetVariable "MIRRTEXT", 0
+
+    'choose a selection set name that you only use as temporary storage and
+    'ensure that it does not currently exist
+    On Error Resume Next
+    ThisDrawing.SelectionSets("TempSSet").Delete
+    Set objSelectionSet = ThisDrawing.SelectionSets.Add("TempSSet")
+
+    'ask user to pick entities on the screen
+    ThisDrawing.Utility.Prompt "Pick objects to be mirrored." & vbCrLf
+    objSelectionSet.SelectOnScreen
+    
+'change the highlight status of each entity selected
+    varPoint1 = ThisDrawing.Utility.GetPoint(, _
+        "Select a point on the mirror axis")
+    varPoint2 = ThisDrawing.Utility.GetPoint(varPoint1, _
+        "Select a point on the mirror axis")
+
+    For Each objDrawingObject In objSelectionSet
+        Set objMirroredObject = objDrawingObject.Mirror(varPoint1, varPoint2)
+        objMirroredObject.Update
+    Next
+  
+    objSelectionSet.Delete
+End Sub
+
+Public Sub MirrorObjectinXYplane()
+      Dim objDrawingObject As AcadEntity
+      Dim varEntityPickedPoint As Variant
+      Dim objMirroredObject As AcadEntity
+      Dim dblPlanePoint1(2) As Double
+      Dim dblPlanePoint2(2) As Double
+      Dim dblPlanePoint3(2) As Double
+
+On Error Resume Next
+    ThisDrawing.Utility.GetEntity objDrawingObject, varEntityPickedPoint, _
+                                  "Please an entity to reflect: "
+    If objDrawingObject Is Nothing Then
+        MsgBox "You did not choose an object"
+        Exit Sub
+    End If
+
+    'set plane of reflection to be the XY plane
+    dblPlanePoint2(0) = 1#
+    dblPlanePoint3(1) = 1#
+    
+    objDrawingObject.Mirror3D dblPlanePoint1, dblPlanePoint2, dblPlanePoint3       
+End Sub
+
+Public Sub MoveObjects()
+      Dim varPoint1 As Variant
+      Dim varPoint2 As Variant
+      Dim objSelectionSet As AcadSelectionSet
+      Dim objDrawingObject As AcadEntity
+
+    'choose a selection set name that you only use as temporary storage and 
+    'ensure that it does not currently exist
+    On Error Resume Next
+    ThisDrawing.SelectionSets("TempSSet").Delete
+    Set objSelectionSet = ThisDrawing.SelectionSets.Add("TempSSet")
+
+    'ask user to pick entities on the screen
+    objSelectionSet.SelectOnScreen
+
+    varPoint1 = ThisDrawing.Utility.GetPoint(, vbCrLf _
+        & "Base point of displacement: ")
+    varPoint2 = ThisDrawing.Utility.GetPoint(varPoint1, vbCrLf _
+        & "Second point of displacement: ")
+  
+    'move the selection of entities
+    For Each objDrawingObject In objSelectionSet
+     objDrawingObject.Move varPoint1, varPoint2
+     objDrawingObject.Update
+    Next
+  
+    objSelectionSet.Delete  
+End Sub
+
+Public Sub OffsetEllipse()
+      Dim objEllipse As AcadEllipse
+      Dim varObjectArray As Variant
+      Dim dblCenter(2) As Double
+      Dim dblMajor(2) As Double
+
+    dblMajor(0) = 100#
+    Set objEllipse = ThisDrawing.ModelSpace.AddEllipse(dblCenter, dblMajor, _
+                                                       0.5)
+
+    varObjectArray = objEllipse.Offset(50)
+    MsgBox "The offset object is a " & varObjectArray(0).ObjectName
+
+    varObjectArray = objEllipse.Offset(-25)
+    MsgBox "The offset object is a " & varObjectArray(0).ObjectName  
+End Sub
+
+Public Sub RotateObject()
+      Dim objDrawingObject As AcadEntity
+      Dim varEntityPickedPoint As Variant
+      Dim varBasePoint As Variant
+      Dim dblRotationAngle As Double
+  
+On Error Resume Next
+    ThisDrawing.Utility.GetEntity objDrawingObject, varEntityPickedPoint, _
+                                  "Please pick an entity to rotate: "
+    If objDrawingObject Is Nothing Then
+        MsgBox "You did not choose an object."
+        Exit Sub
+    End If
+    varBasePoint = ThisDrawing.Utility.GetPoint(, _
+                   "Enter a base point for the rotation.")
+    dblRotationAngle = ThisDrawing.Utility.GetReal( _
+                       "Enter the rotation angle in degrees: ")
+    
+    'convert to radians
+    dblRotationAngle = ThisDrawing.Utility. _
+                       AngleToReal(CStr(dblRotationAngle), acDegrees)
+  
+    'Rotate the object
+    objDrawingObject.Rotate varBasePoint, dblRotationAngle
+    objDrawingObject.Update
+End Sub
+
+Public Sub Rotate3DObject()
+Dim objDrawingObject As AcadEntity
+Dim varEntityPickedPoint As Variant
+Dim objMirroredObject As AcadEntity
+Dim varAxisPoint1 As Variant
+Dim varAxisPoint2 As Variant
+Dim dblRotationAxis As Double
+
+On Error Resume Next
+    ThisDrawing.Utility.GetEntity objDrawingObject, _
+        varEntityPickedPoint, "Please an entity to rotate: "
+    If objDrawingObject Is Nothing Then
+        MsgBox "You did not choose an object"
+        Exit Sub
+    End If
+
+   'ask user for axis points and angle of rotation
+   varAxisPoint1 = ThisDrawing.Utility.GetPoint(, _
+                                "Enter first point of axis of rotation: ")
+   varAxisPoint2 = ThisDrawing.Utility.GetPoint(, _
+                                "Enter second point of axis of rotation: ")
+   dblRotationAxis = ThisDrawing.Utility.GetReal( _
+                                "Enter angle of rotation in degrees")
+   'convert to radians
+   dblRotationAxis = ThisDrawing.Utility.AngleToReal(CStr(dblRotationAxis), _
+                                                     acDegrees)
+    
+   objDrawingObject.Rotate3D varAxisPoint1, varAxisPoint2, dblRotationAxis       
+End Sub
+
+Public Sub ScaleObject()
+      Dim objDrawingObject As AcadEntity
+      Dim varEntityPickedPoint As Variant
+      Dim varBasePoint As Variant
+      Dim dblScaleFactor As Double
+  
+On Error Resume Next
+    ThisDrawing.Utility.GetEntity objDrawingObject, varEntityPickedPoint, _
+                                  "Please pick an entity to scale: "
+    If objDrawingObject Is Nothing Then
+        MsgBox "You did not choose an object"
+        Exit Sub
+    End If
+    
+    varBasePoint = ThisDrawing.Utility.GetPoint(, _
+                   "Pick a base point for the scale:")
+    dblScaleFactor = ThisDrawing.Utility.GetReal("Enter the scale factor: ")
+    
+    'Scale the object
+    objDrawingObject.ScaleEntity varBasePoint, dblScaleFactor
+    objDrawingObject.Update
+End Sub
+
+Public Sub CreatePolarArray()
+      Dim objDrawingObject As AcadEntity
+      Dim varEntityPickedPoint As Variant
+      Dim varArrayCenter As Variant
+      Dim lngNumberofObjects As Long
+      Dim dblAngletoFill As Double
+      Dim varPolarArray As Variant
+      Dim intCount As Integer
+
+On Error Resume Next
+    ThisDrawing.Utility.GetEntity objDrawingObject, varEntityPickedPoint, _
+                       "Please select an entity to form the basis of a polar array"
+    If objDrawingObject Is Nothing Then
+        MsgBox "You did not choose an object"
+        Exit Sub
+    End If
+    
+    varArrayCenter = ThisDrawing.Utility.GetPoint(, _
+                     "Pick the center of the array: ")
+    lngNumberofObjects = ThisDrawing.Utility.GetInteger( _
+                     "Enter total number of objects required in the array: ")
+    dblAngletoFill = ThisDrawing.Utility.GetReal( _
+          "Enter an angle (in degrees less than 360) over which the array should extend: ")
+    dblAngletoFill = ThisDrawing.Utility.AngleToReal _
+                            (CStr(dblAngletoFill), acDegrees)
+    If dblAngletoFill > 359 Then
+      MsgBox “Angle must be less than 360 degrees”, vbCritical
+      Exit Sub
+    End If
+    varPolarArray = objDrawingObject.ArrayPolar(lngNumberofObjects, _
+                                            dblAngletoFill, varArrayCenter)
+
+    For intCount = 0 To UBound(varPolarArray)
+        varPolarArray(intCount).Color = acRed
+        varPolarArray(intCount).Update
+    Next intCount
+End Sub
+
+Public Sub Create2DRectangularArray()
+      Dim objDrawingObject As AcadEntity
+      Dim varEntityPickedPoint As Variant
+      Dim lngNoRows As Long
+      Dim lngNoColumns As Long
+      Dim dblDistRows As Long
+      Dim dblDistCols As Long
+      Dim varRectangularArray As Variant
+      Dim intCount As Integer
+
+On Error Resume Next
+    ThisDrawing.Utility.GetEntity objDrawingObject, varEntityPickedPoint, _
+          "Please pick an entity to form the basis of a rectangular array: "
+    If objDrawingObject Is Nothing Then
+        MsgBox "You did not choose an object"
+        Exit Sub
+    End If
+    
+    lngNoRows = ThisDrawing.Utility.GetInteger( _
+                             "Enter the required number of rows: ")
+    lngNoColumns = ThisDrawing.Utility.GetInteger( _
+                             "Enter the required number of columns: ")
+    dblDistRows = ThisDrawing.Utility.GetReal( _
+                             "Enter the required distance between rows: ")
+    dblDistCols = ThisDrawing.Utility.GetReal( _
+                             "Enter the required distance between columns: ")
+    
+    varRectangularArray = objDrawingObject.ArrayRectangular(lngNoRows, _
+                             lngNoColumns, 1, dblDistRows, dblDistCols, 0)
+    For intCount = 0 To UBound(varRectangularArray)
+        varRectangularArray(intCount).Color = acRed
+        varRectangularArray(intCount).Update
+    Next
+End Sub
+
+Public Sub ColorGreen()
+Dim objSelectionSet As AcadSelectionSet
+Dim objDrawingObject As AcadEntity
+
+    'choose a selection set name that you only use as temporary storage and
+    'ensure that it does not currently exist
+    On Error Resume Next
+    ThisDrawing.SelectionSets("TempSSet").Delete
+    Set objSelectionSet = ThisDrawing.SelectionSets.Add("TempSSet")
+
+    'ask user to pick entities on the screen
+    objSelectionSet.SelectOnScreen
+ 
+    For Each objDrawingObject In objSelectionSet
+        objDrawingObject.Color = acGreen
+        objDrawingObject.Update
+    Next
+
+    objSelectionSet.Delete 
+End Sub
+
+Public Sub Example_TrueColor()
+    ' This example draws a line and returns the RGB values
+    Dim color As AcadAcCmColor
+    Set color = AcadApplication.GetInterfaceObject("AutoCAD.AcCmColor.16")
+    Call color.SetRGB(80, 100, 244)
+    
+    Dim line As AcadLine
+    Dim startPoint(0 To 2) As Double
+    Dim endPoint(0 To 2) As Double
+        
+    startPoint(0) = 1#: startPoint(1) = 1#: startPoint(2) = 0#
+    endPoint(0) = 5#: endPoint(1) = 5#: endPoint(2) = 0#
+        
+    Set line = ThisDrawing.ModelSpace.AddLine(startPoint, endPoint)
+    ZoomAll
+    
+    line.TrueColor = color
+    Dim retcolor As AcadAcCmColor
+    Set retcolor = line.TrueColor
+    
+    MsgBox "Red = " & retcolor.Red & vbCrLf & _
+    "Green = " & retcolor.Green & vbCrLf & _
+    "Blue = " & retcolor.Blue
+End Sub
+Dim fColor As AcadAcCmColor
+Set fColor = AcadApplication.GetInterfaceObject("AutoCAD.AcCmColor.16")
+Call color.SetRGB(80, 100, 244) _    
+Call fColor.SetColorBookColor("PANTONE Yellow", _
+      "Pantone solid colors-uncoated.acb") 
+objCircle.TrueColor = fColor
+
+Public Sub ChangeLayer()
+      Dim objNewLayer As AcadLayer
+      Dim objCircle1 As AcadCircle
+      Dim objCircle2 As AcadCircle
+      Dim dblCenter1(2) As Double
+      Dim dblCenter2(2) As Double
+      dblCenter2(0) = 10#
+
+    'reference a layer called "New Layer" is it exists or 
+    'add a new layer if it does not
+    Set objNewLayer = ThisDrawing.Layers.Add("New Layer")
+    
+    objNewLayer.Color = acBlue
+
+    ThisDrawing.ActiveLayer = ThisDrawing.Layers("0")
+    Set objCircle1 = ThisDrawing.ModelSpace.AddCircle(dblCenter1, 10#)
+    Set objCircle2 = ThisDrawing.ModelSpace.AddCircle(dblCenter2, 10#)
+    objCircle1.Color = acRed
+    objCircle1.Update
+    
+    objCircle1.Layer = "New Layer"
+    objCircle2.Layer = "New Layer"
+End Sub
+
+Public Sub ChangeLinetype()
+      Dim objDrawingObject As AcadEntity
+      Dim varEntityPickedPoint As Variant
+
+On Error Resume Next
+    ThisDrawing.Utility.GetEntity objDrawingObject, varEntityPickedPoint, _
+                                  "Please pick an object"
+    If objDrawingObject Is Nothing Then
+        MsgBox "You did not choose an object"
+        Exit Sub
+    End If
+
+    ThisDrawing.Utility.GetEntity objDrawingObject, varEntityPickedPoint, _
+                                  "Pick an entity to change linetype: "
+    objDrawingObject.Linetype = "Continuous"
+    objDrawingObject.Update
+    
+End Sub
+
+Public Sub ToggleVisibility()
+      Dim objDrawingObject As AcadEntity
+      Dim varEntityPickedPoint As Variant
+
+On Error Resume Next
+    ThisDrawing.Utility.GetEntity objDrawingObject, varEntityPickedPoint, _
+                                  "Choose an object to toggle visibility: "
+    If objDrawingObject Is Nothing Then
+        MsgBox "You did not choose an object"
+        Exit Sub
+    End If
+  
+  objDrawingObject.Visible = False
+  objDrawingObject.Update
+  MsgBox "The object was made invisible!"
+  objDrawingObject.Visible = True
+  objDrawingObject.Update
+  MsgBox "Now it is visible again!"
+End Sub

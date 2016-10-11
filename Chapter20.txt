@@ -1,0 +1,268 @@
+Public Sub TestAddTable_Click()
+Dim vInsertionPoint As Variant
+Dim lNumberOfRows As Long
+Dim lNumberOfColumns As Long
+Dim dRowHeight As Double
+Dim dColumnWidth As Double
+Dim oTable As AcadTable
+
+  On Error Resume Next
+  
+  With ThisDrawing.Utility
+    vInsertionPoint = .GetPoint(, vbCr & "Pick the insertion point: ")
+    lNumberOfRows = .GetInteger(vbCr & "Enter number of rows: ")
+    lNumberOfColumns = .GetInteger(vbCr & "Enter number of columns: ")
+    dRowHeight = .GetReal(vbCr & "Enter row height: ")
+    dColumnWidth = .GetReal(vbCr & "Enter column width: ")
+  End With
+  
+  If Err Then Exit Sub
+  
+  Set oTable = ThisDrawing.ModelSpace.AddTable(vInsertionPoint, _
+lNumberOfRows, lNumberOfColumns, dRowHeight, dColumnWidth)
+End Sub
+
+Public Sub TestGetText()
+Dim vPoint As Variant
+Dim oTable As AcadTable
+Dim Text As String
+
+  On Error Resume Next
+  
+  ThisDrawing.Utility.GetEntity oTable, vPoint, "Select table: "
+  
+  If TypeOf oTable Is AcadTable Then
+    Text = oTable.GetText(1, 2)
+  End If
+  
+  MsgBox Text
+End Sub
+
+Public Sub TestSetText()
+Dim vPoint As Variant
+Dim oTable As AcadTable
+
+  On Error Resume Next
+  
+  ThisDrawing.Utility.GetEntity oTable, vPoint, "Select table: "
+  
+  If TypeOf oTable Is AcadTable Then
+    With oTable
+      .SetText 1, 2, "New string"
+      Text = .GetText(1, 2)
+    End With
+  End If
+  
+  MsgBox Text
+End Sub
+
+Public Sub TestGetTextHeight()
+Dim vPoint As Variant
+Dim oTable As AcadTable
+Dim Index As Long
+
+  On Error Resume Next
+  
+ ThisDrawing.Utility.GetEntity oTable, vPoint, "Select table: "
+  
+  If TypeOf oTable Is AcadTable Then
+    With oTable
+      For Index = 0 To 3
+        Select Case Index
+          Case 0
+            MsgBox "DataRow height: " & .GetTextHeight(acDataRow)
+          Case 1
+            MsgBox "HeaderRow height: " & .GetTextHeight(acHeaderRow)
+          Case 2
+            MsgBox "TitleRow height: " & .GetTextHeight(acTitleRow)
+          Case 3
+            MsgBox "UnknownRow height: " & .GetTextHeight(acUnknownRow)
+        End Select
+      Next Index
+    End With
+  End If
+End Sub
+
+Public Sub TestSetTextHeight()
+Dim vPoint As Variant
+Dim oTable As AcadTable
+Dim Index As Long
+
+  On Error Resume Next
+  
+ ThisDrawing.Utility.GetEntity oTable, vPoint, "Select table: "
+  
+  If TypeOf oTable Is AcadTable Then
+    With oTable
+      For Index = 0 To 3
+        Select Case Index
+          Case 0
+            .SetTextHeight acDataRow, 0.25
+            MsgBox "DataRow height: " & .GetTextHeight(acDataRow)
+          Case 1
+            .SetTextHeight acHeaderRow, 0.25
+            MsgBox "HeaderRow height: " & .GetTextHeight(acHeaderRow)
+          Case 2
+            .SetTextHeight acTitleRow, 0.25
+            MsgBox "TitleRow height: " & .GetTextHeight(acTitleRow)
+          Case 3
+            .SetTextHeight acUnknownRow, 0.25
+            MsgBox "UnknownRow height: " & .GetTextHeight(acUnknownRow)
+        End Select
+      Next Index
+    End With
+  End If
+End Sub
+
+Public Sub TestInsertRows()
+Dim vPoint As Variant
+Dim oTable As AcadTable
+
+  On Error Resume Next
+  
+  ThisDrawing.Utility.GetEntity oTable, vPoint, "Select table: "
+  
+  If TypeOf oTable Is AcadTable Then
+    oTable.InsertRows 1, 0.25, 2
+    'second row, insert two 0.25 high rows
+  End If
+End Sub
+
+Public Sub TestInsertColumns()
+Dim vPoint As Variant
+Dim oTable As AcadTable
+
+  On Error Resume Next
+  
+ ThisDrawing.Utility.GetEntity oTable, vPoint, "Select table: "
+  
+  If TypeOf oTable Is AcadTable Then
+    oTable.InsertColumns 1, 1.25, 2
+    'second column, insert two 1.25 wide columns
+  End If
+End Sub
+
+Public PartNumber As String
+Public Count As Long
+Public Description As String
+
+Public Components As New Collection         'global variable for creating BOM
+
+Public Const Entity = 0                     'an entity
+
+Public Function CreateSelectionSet(SelectionSet As AcadSelectionSet, _
+                                   FilterCode As Integer, _
+                                   FilterValue As String) As Boolean
+Dim intFilterCode(0) As Integer
+Dim varFilterValue(0) As Variant
+
+'assume success
+CreateSelectionSet = True
+
+  intFilterCode(0) = FilterCode
+  varFilterValue(0) = FilterValue
+  
+  SelectionSet.Select acSelectionSetAll, , , intFilterCode, varFilterValue
+  
+  If SelectionSet.Count < 1 Then
+    CreateSelectionSet = False
+  End If
+End Function
+
+Public Sub CreateBillOfMaterials()
+Dim oSS As AcadSelectionSet
+Dim oAttribute As AcadAttribute
+Dim BlockRef As AcadBlockReference
+Dim Index As Long
+Dim Component As New Component
+Dim Attribs As Variant
+
+  On Error Resume Next
+  ThisDrawing.SelectionSets("Inserts").Delete
+  On Error GoTo 0
+  
+  Set oSS = ThisDrawing.SelectionSets.Add("Inserts")
+  
+  'zero the Components class object
+  Set Components = Nothing
+  
+  'create a selection set of BlockRefs
+  If CreateSelectionSet(oSS, Entity, "INSERT") Then
+    For Index = 0 To oSS.Count - 1
+      Set BlockRef = oSS(Index)
+      
+      If BlockRef.HasAttributes Then
+        Attribs = BlockRef.GetAttributes
+
+        On Error Resume Next
+        Set Component = Components(Attribs(0).TextString)
+      
+        If Err Then
+          Err.Clear
+          On Error GoTo 0
+        
+          With Component
+            .Count = 1
+            .PartNumber = Attribs(0).TextString
+            .Description = Attribs(1).TextString
+          End With
+
+          Components.Add Component, Component.PartNumber
+        
+          Else
+            Components(Attribs(0).TextString).Count = _
+         Components(Attribs(0).TextString).Count + 1
+        End If
+            
+        Set Component = Nothing
+      End If
+    Next Index
+  End If
+  'create the table on the drawing
+  CreateTableBOM
+End Sub
+
+Private Sub CreateTableBOM()
+Dim vInsertionPoint As Variant
+Dim lNumberOfRows As Long
+Dim lNumberOfColumns As Long
+Dim dRowHeight As Double
+Dim dColumnWidth As Double
+Dim oTable As AcadTable
+Dim Row As Long
+Dim Column As Long
+
+  On Error Resume Next
+  
+  With ThisDrawing.Utility
+    vInsertionPoint = .GetPoint(, vbCr & "Pick the insertion point: ")
+  End With
+  
+  If Err Then Exit Sub
+
+  lNumberOfRows = Components.Count + 1
+  lNumberOfColumns = 3
+  dRowHeight = 0.25
+  dColumnWidth = 2
+  
+  Set oTable = ThisDrawing.ModelSpace.AddTable(vInsertionPoint, _
+lNumberOfRows, lNumberOfColumns, dRowHeight, dColumnWidth)
+
+  'put in the header row
+  oTable.SetText Row, Column, "Parts List"
+  
+  For Row = 1 To Components.Count
+    With Components(Row)
+      oTable.SetText Row, Column, .PartNumber
+      Column = Column + 1
+      oTable.SetText Row, Column, .Description
+      Column = Column + 1
+      oTable.SetText Row, Column, .Count
+    End With
+    'reset column back to zero
+    Column = 0
+  Next Row
+  
+  'adjust the Description column width
+  oTable.SetColumnWidth 1, 6
+End Sub

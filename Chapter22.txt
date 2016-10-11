@@ -1,0 +1,201 @@
+Public mobjWord As Word.Application
+Public mobjDoc As Word.Document
+Public mobjTable As Word.Table
+
+Dim oDocument As AcadDocument
+  For Each oDocument In Application.Documents
+    cboDrawingName.AddItem oDocument.Name
+  Next oDocument
+  'set the starting list value to active document
+  Dim Index As Long
+    For Index = 0 To cboDrawingName.ListCount - 1
+      With cboDrawingName
+        .ListIndex = Index
+        If .List(.ListIndex) = Application.ActiveDocument.Name Then
+          Exit For
+        End If
+      End With
+    Next Index
+
+Set mobjWord = CreateObject("Word.Application")
+
+mobjWord.Visible = True
+
+Set mobjDoc = mobjWord.Documents.Add
+
+Set mobjTable = mobjWord.ActiveDocument.Tables.Add _
+ (mobjWord.ActiveDocument.Range, _
+    Application.Documents(cboDrawingName.Text).Layers.Count + 1, 9)
+
+Dim lngRow As Long
+Dim lngColumn As Long
+
+  'row counter must begin at 1
+  lngRow = 1
+  'column counter must begin at 1
+  lngColumn = 1
+
+  With mobjTable
+    .Cell(lngRow, lngColumn).Range.Text = "Name"
+    lngColumn = lngColumn + 1
+    .Cell(lngRow, lngColumn).Range.Text = "On"
+    lngColumn = lngColumn + 1
+    .Cell(lngRow, lngColumn).Range.Text = "Frozen"
+    lngColumn = lngColumn + 1
+    .Cell(lngRow, lngColumn).Range.Text = "Locked"
+    lngColumn = lngColumn + 1
+    .Cell(lngRow, lngColumn).Range.Text = "Color"
+    lngColumn = lngColumn + 1
+    .Cell(lngRow, lngColumn).Range.Text = "Linetype"
+    lngColumn = lngColumn + 1
+    .Cell(lngRow, lngColumn).Range.Text = "Lineweight"
+    lngColumn = lngColumn + 1
+    .Cell(lngRow, lngColumn).Range.Text = "Style"
+    lngColumn = lngColumn + 1
+    .Cell(lngRow, lngColumn).Range.Text = "Plottable"
+  End With
+
+  'increment the row counter
+  lngRow = lngRow + 1
+
+  'column must begin at 1
+  lngColumn = 1
+  
+Dim objLayer As AcadLayer
+
+  'put layer data in table
+  For Each objLayer In Application.Documents(cboDrawingName.Text).Layers
+    With mobjTable
+      .Cell(lngRow, lngColumn).Range.Text = objLayer.Name
+      lngColumn = lngColumn + 1
+      .Cell(lngRow, lngColumn).Range.Text = ConvertToWord(objLayer.LayerOn)
+      lngColumn = lngColumn + 1
+      .Cell(lngRow, lngColumn).Range.Text = ConvertToWord(objLayer.Freeze)
+      lngColumn = lngColumn + 1
+      .Cell(lngRow, lngColumn).Range.Text = ConvertToWord(objLayer.Lock)
+      lngColumn = lngColumn + 1
+      .Cell(lngRow, lngColumn).Range.Text = ConvertColorToString(objLayer.Color)
+      lngColumn = lngColumn + 1
+      .Cell(lngRow, lngColumn).Range.Text = objLayer.Linetype
+      lngColumn = lngColumn + 1
+      .Cell(lngRow, lngColumn).Range.Text = ConvertLineweight(objLayer.Lineweight)
+      lngColumn = lngColumn + 1
+    
+      If ThisDrawing.Application.Preferences.Output.PlotPolicy Then
+        .Cell(lngRow, lngColumn).Range.Text = "ByColor"
+      
+        Else
+          .Cell(lngRow, lngColumn).Range.Text = objLayer.PlotStyleName
+      End If
+    
+      lngColumn = lngColumn + 1
+      .Cell(lngRow, lngColumn).Range.Text = ConvertToWord(objLayer.Plottable)
+      
+      'increment the row counter
+      lngRow = lngRow + 1
+      
+      'column counter must begin at 1
+      lngColumn = 1
+    End With
+  Next objLayer
+
+Public Function ConvertColorToString(Color As Integer) As String
+  Select Case Color
+    Case 0
+      ConvertColorToString = "ByBlock"
+    Case 1
+      ConvertColorToString = "Red"
+    Case 2
+      ConvertColorToString = "Yellow"
+    Case 3
+      ConvertColorToString = "Green"
+    Case 4
+      ConvertColorToString = "Cyan"
+    Case 5
+      ConvertColorToString = "Blue"
+    Case 6
+      ConvertColorToString = "Magenta"
+    Case 7
+      ConvertColorToString = "White"
+    Case 256
+      ConvertColorToString = "ByLayer"
+    Case Else
+      ConvertColorToString = CStr(Color)
+  End Select
+End Function
+
+Public Function ConvertLineweight(Lineweight As Integer) As String
+  Select Case Lineweight
+    Case acLnWtByBlock
+      ConvertLineweight = "ByBlock"
+    Case acLnWtByLayer
+      ConvertLineweight = "ByLayer"
+    Case acLnWtByLwDefault
+      ConvertLineweight = "Default"
+    Case Else
+      ConvertLineweight = Format(Lineweight / 100, "#.00") & "mm"
+  End Select
+End Function
+
+Public Function ConvertToWord(Value As Boolean) As String
+  Select Case Value
+    Case acTrue
+      ConvertToWord = "Yes"
+    Case acFalse
+      ConvertToWord = "No"
+  End Select
+End Function
+
+With mobjWord.ActiveDocument
+  'set text font and size for each section
+
+  .Styles("Normal").Font.Name = "Tahoma"
+  .Styles("Normal").Font.Size = "8"
+  .Styles("Header").Font.Name = "Tahoma"
+  .Styles("Header").Font.Size = "9"
+  .Styles("Header").Font.Bold = True
+  .Styles("Footer").Font.Name = "Tahoma"
+  .Styles("Footer").Font.Size = "9"
+  .Styles("Footer").Font.Italic = True
+  .Styles("Page Number").Font.Name = "Tahoma"
+  .Styles("Page Number").Font.Size = "11"
+  .Styles("Page Number").Font.Bold = True
+End With
+
+  If chkSorted.Value Then
+    'sort the table of layers
+    With mobjTable
+      .Select
+      .Sort ExcludeHeader:=True, FieldNumber:="Column 1", SortFieldType _
+        :=wdSortFieldAlphanumeric, SortOrder:=wdSortOrderAscending
+    End With
+  End If
+
+  With mobjTable
+    .AutoFitBehavior wdAutoFitContent
+    .Columns(1).AutoFit      'Layer name
+    .Columns(2).AutoFit      'Off/On status
+    .Columns(3).AutoFit      'Frozen/Thawed status
+    .Columns(4).AutoFit      'Locked/Unlocked status
+    .Columns(5).AutoFit      'Layer color
+    .Columns(6).AutoFit      'Layer linetype
+    .Columns(7).AutoFit      'Layer lineweight
+    .Columns(8).AutoFit      'Layer Plot style
+    .Columns(9).AutoFit      'Plot this layer?
+  End With
+
+  With mobjDoc
+    'set the document header
+    .Sections(1).Headers(wdHeaderFooterPrimary).Range.Text = _
+        "Layer Report for " & Application.Documents(cboDrawingName.Value).Path _
+        & "\" & Application.Documents(cboDrawingName.Value).Name
+        
+    'set the document footer
+    .Sections(1).Footers(wdHeaderFooterPrimary).Range.Text = _
+     "Date Created: " & Date & vbTab & "Total # of Layers: " _
+    & Application.Documents(cboDrawingName.Value).Layers.Count
+    .Sections(1).Footers(wdHeaderFooterPrimary).PageNumbers.Add _
+    wdAlignPageNumberRight
+  End With
+
+mobjWord.ActiveDocument.PrintOut

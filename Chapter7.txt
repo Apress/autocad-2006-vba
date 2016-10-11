@@ -1,0 +1,494 @@
+Private Sub cmdGetReal_Click()
+Dim dblInput As Double
+    Me.Hide
+    dblInput = ThisDrawing.Utility.GetReal("Enter a real value: ")
+    Me.Show
+End Sub
+
+Public Sub TestUserInput()
+Dim strInput As String
+    With ThisDrawing.Utility
+        .InitializeUserInput 1, "Line Arc Circle laSt"
+        strInput = .GetKeyword(vbCr & "Option [Line/Arc/Circle/laSt]: ")
+        .Prompt "You selected '" & strInput & "'"
+    End With
+End Sub
+
+Private Sub CommandButton1_Click()
+Dim strInput As String
+    Me.Hide
+    With ThisDrawing.Utility
+        .InitializeUserInput 1, "Line Arc Circle laSt"
+        strInput = .GetKeyword(vbCr & "Option [Line/Arc/Circle/laSt]: ")
+        MsgBox "You selected '" & strInput & "'"
+    End With
+    Me.Show
+End Sub
+
+Public Sub TestPrompt()
+    ThisDrawing.Utility.Prompt vbCrLf & "This is a simple message"
+End Sub
+
+Public Sub TestUserInput()
+Dim strInput As String
+    With ThisDrawing.Utility
+        .InitializeUserInput 1, "Line Arc Circle laSt"
+        strInput = .GetKeyword(vbCr & "Option [Line/Arc/Circle/laSt]: ")
+        .Prompt vbCr & "You selected '" & strInput & "'"
+    End With
+End Sub
+
+Public Sub TestGetKeyword()
+Dim strInput As String
+    
+    With ThisDrawing.Utility
+        .InitializeUserInput 0, "Line Arc Circle"
+        strInput = .GetKeyword(vbCr & "Command [Line/Arc/Circle]: ")
+    End With
+    
+    Select Case strInput
+
+        Case "Line": ThisDrawing.SendCommand "_Line" & vbCr
+        Case "Arc": ThisDrawing.SendCommand "_Arc" & vbCr
+        Case "Circle": ThisDrawing.SendCommand "_Circle" & vbCr
+        Case Else:  MsgBox "You pressed Enter."
+
+    End Select
+End Sub
+
+Public Sub TestGetString()
+Dim strInput As String
+    
+    With ThisDrawing.Utility
+        strInput = .GetString(True, vbCr & "Enter a string: ")
+        .Prompt vbCr & "You entered '" & strInput & "' "
+    End With
+End Sub
+
+Public Sub TestGetInteger()
+Dim intInput As Integer
+    
+    With ThisDrawing.Utility
+        intInput = .GetInteger(vbCr & "Enter an integer: ")
+        .Prompt vbCr & "You entered " & intInput
+    End With
+End Sub
+
+Public Sub TestGetReal()
+Dim dblInput As Double
+    
+    With ThisDrawing.Utility
+        dblInput = .GetReal(vbCrLf & "Enter an real: ")
+        .Prompt vbCr & "You entered " & dblInput
+    End With
+End Sub
+
+Public Sub TestGetPoint()
+Dim varPick As Variant
+    
+    With ThisDrawing.Utility
+        varPick = .GetPoint(, vbCr & "Pick a point: ")
+        .Prompt vbCr & varPick(0) & "," & varPick(1)
+    End With
+End Sub
+
+Public Sub TestGetCorner()
+Dim varBase As Variant
+Dim varPick As Variant
+    
+    With ThisDrawing.Utility
+        varBase = .GetPoint(, vbCr & "Pick the first corner: ")
+        .Prompt vbCrLf & varBase(0) & "," & varBase(1)
+        varPick = .GetCorner(varBase, vbLf & "Pick the second: ")
+        .Prompt vbCr & varPick(0) & "," & varPick(1)
+    End With
+End Sub
+
+Public Sub TestGetDistance()
+Dim dblInput As Double
+Dim dblBase(2) As Double
+    
+    dblBase(0) = 0:  dblBase(1) = 0:  dblBase(2) = 0
+    
+    With ThisDrawing.Utility
+        dblInput = .GetDistance(dblBase, vbCr & "Enter a distance: ")
+        .Prompt vbCr & "You entered " & dblInput
+    End With
+End Sub
+
+Public Sub TestGetAngle()
+Dim dblInput As Double
+    
+    ThisDrawing.SetVariable "DIMAUNIT", acDegrees
+    
+    With ThisDrawing.Utility
+        dblInput = .GetAngle(, vbCr & "Enter an angle: ")
+        .Prompt vbCr & "Angle in radians: " & dblInput
+    End With
+End Sub
+
+Public Sub TestGetInput()
+Dim intInput As Integer
+Dim strInput As String
+    
+On Error Resume Next                    ' handle exceptions inline
+    With ThisDrawing.Utility
+        strInput = .GetInput()
+        .InitializeUserInput 0, "Line Arc Circle"
+        intInput = .GetInteger(vbCr & "Integer or [Line/Arc/Circle]: ")
+    
+        If Err.Description Like "*error*" Then
+            .Prompt vbCr & "Input Cancelled"
+        ElseIf Err.Description Like "*keyword*" Then
+            strInput = .GetInput()
+            Select Case strInput
+                Case "Line": ThisDrawing.SendCommand "_Line" & vbCr
+                Case "Arc": ThisDrawing.SendCommand "_Arc" & vbCr
+                Case "Circle": ThisDrawing.SendCommand "_Circle" & vbCr
+                Case Else: .Prompt vbCr & "Null Input entered"
+            End Select
+        Else
+            .Prompt vbCr & "You entered " & intInput
+        End If
+    End With
+
+End Sub
+
+Public Sub TestGetInputBug()
+On Error Resume Next                    ' handle exceptions inline
+    
+    With ThisDrawing.Utility
+        
+        '' first keyword input
+        .InitializeUserInput 1, "Alpha Beta Ship"
+        .GetInteger vbCr & "Option [Alpha/Beta/Ship]: "
+        MsgBox "You entered: " & .GetInput()
+            
+        '' second keyword input - hit Enter here
+        .InitializeUserInput 0, "Bug May Slip"
+        .GetInteger vbCr & "Hit enter [Bug/May/Slip]: "
+        MsgBox "GetInput still returns: " & .GetInput()
+    End With
+End Sub
+
+Public Sub TestGetInputWorkaround()
+Dim strBeforeKeyword As String
+Dim strKeyword As String
+    
+On Error Resume Next                    ' handle exceptions inline
+    With ThisDrawing.Utility
+        
+        '' first keyword input
+        .InitializeUserInput 1, "This Bug Stuff"
+        .GetInteger vbCrLf & "Option [This/Bug/Stuff]: "
+        MsgBox "You entered: " & .GetInput()
+            
+        '' get lingering keyword
+        strBeforeKeyword = .GetInput()
+            
+        '' second keyword input - press Enter
+        .InitializeUserInput 0, "Make Life Rough"
+        .GetInteger vbCrLf & "Hit enter [Make/Life/Rough]: "
+        strKeyword = .GetInput()
+        
+        '' if input = lingering it might be null input
+        If strKeyword = strBeforeKeyword Then
+            MsgBox "Looks like null input: " & strKeyword
+        Else
+            MsgBox "This time you entered: " & strKeyword
+        End If
+    End With
+End Sub
+
+Public Sub TestGetEntity()
+Dim objEnt As AcadEntity
+Dim varPick As Variant
+
+On Error Resume Next
+    With ThisDrawing.Utility
+        .GetEntity objEnt, varPick, vbCr & "Pick an entity: "
+        If objEnt Is Nothing Then 'check if object was picked.
+            .Prompt vbCrLf & "You did not pick as entity"
+            Exit Sub
+        End If
+        .Prompt vbCr & "You picked a " & objEnt.ObjectName
+        .Prompt vbCrLf & "At " & varPick(0) & "," & varPick(1)
+    End With
+End Sub
+
+Public Sub TestGetSubEntity()
+Dim objEnt As AcadEntity
+Dim varPick As Variant
+Dim varMatrix As Variant
+Dim varParents As Variant
+Dim intI As Integer
+Dim intJ As Integer
+Dim varID As Variant
+    
+    With ThisDrawing.Utility
+        
+        '' get the subentity from the user
+        .GetSubEntity objEnt, varPick, varMatrix, varParents, _
+            vbCr & "Pick an entity: "
+        
+        '' print some information about the entity
+        .Prompt vbCr & "You picked a " & objEnt.ObjectName
+        .Prompt vbCrLf & "At " & varPick(0) & "," & varPick(1)
+        
+        '' dump the varMatrix
+        If Not IsEmpty(varMatrix) Then
+            .Prompt vbLf & "MCS to WCS Translation varMatrix:"
+            
+            '' format varMatrix row
+            For intI = 0 To 3
+                .Prompt vbLf & "["
+                
+                '' format varMatrix column
+                For intJ = 0 To 3
+                    .Prompt "(" & varMatrix(intI, intJ) & ")"
+                Next intJ
+                
+                .Prompt "]"
+            Next intI
+            .Prompt vbLf
+        End If
+        
+        '' if it has a parent nest
+        If Not IsEmpty(varParents) Then
+            
+            .Prompt vbLf & "Block nesting:"
+            
+            '' depth counter
+            intI = -1
+            
+            '' traverse most to least deep (reverse order)
+            For intJ = UBound(varParents) To LBound(varParents) Step -1
+                
+                '' increment depth
+                intI = intI + 1
+                
+                '' indent output
+                .Prompt vbLf & Space(intI * 2)
+                
+                '' parent object ID
+                varID = varParents(intJ)
+                
+                '' parent entity
+                Set objEnt = ThisDrawing.ObjectIdToObject(varID)
+                                
+                '' print info about parent
+                .Prompt objEnt.ObjectName & " : " & objEnt.Name
+            Next intJ
+            .Prompt vbLf
+        End If
+        .Prompt vbCr
+    End With
+End Sub
+
+Public Sub TestAngleToReal()
+Dim strInput As String
+Dim dblAngle As Double
+    
+    With ThisDrawing.Utility
+        strInput = .GetString(True, vbCr & "Enter an angle: ")
+        dblAngle = .AngleToReal(strInput, acDegrees)
+        .Prompt vbCr & "Radians: " & dblAngle
+    End With
+End Sub
+
+Public Sub TestAngleToString()
+Dim strInput As String
+Dim strOutput As String
+Dim dblAngle As Double
+    
+    With ThisDrawing.Utility
+        strInput = .GetString(True, vbCr & "Enter an angle: ")
+        dblAngle = .AngleToReal(strInput, acDegrees)
+        .Prompt vbCr & "Radians: " & dblAngle
+        
+        strOutput = .AngleToString(dblAngle, acDegrees, 4)
+        .Prompt vbCrLf & "Degrees: " & strOutput
+    End With
+End Sub
+
+Public Sub TestDistanceToReal()
+Dim strInput As String
+Dim dblDist As Double
+    
+    With ThisDrawing.Utility
+        strInput = .GetString(True, vbCr & "Enter a distance: ")
+        dblDist = .DistanceToReal(strInput, acArchitectural)
+        .Prompt vbCr & "Distance: " & dblDist
+    End With
+End Sub
+
+Public Sub TestRealToString()
+Dim strInput As String
+Dim strOutput As String
+Dim dblDist As Double
+    
+    With ThisDrawing.Utility
+        strInput = .GetString(True, vbCr & "Enter a distance: ")
+        dblDist = .DistanceToReal(strInput, acArchitectural)
+        .Prompt vbCr & "Double: " & dblDist
+        
+        strOutput = .RealToString(dblDist, acArchitectural, 4)
+        .Prompt vbCrLf & "Distance: " & strOutput
+    End With
+End Sub
+
+Public Sub TestAngleFromXAxis()
+Dim varStart As Variant
+Dim varEnd As Variant
+Dim dblAngle As Double
+    
+    With ThisDrawing.Utility
+        varStart = .GetPoint(, vbCr & "Pick the start point: ")
+        varEnd = .GetPoint(varStart, vbCr & "Pick the end point: ")
+        dblAngle = .AngleFromXAxis(varStart, varEnd)
+        .Prompt vbCr & "The angle from the X-axis is " _
+           & .AngleToString(dblAngle, acDegrees, 2) & " degrees"
+    End With
+End Sub
+
+Public Sub TestPolarPoint()
+Dim varpnt1 As Variant
+Dim varpnt2 As Variant
+Dim varpnt3 As Variant
+Dim varpnt4 As Variant
+Dim dblAngle As Double
+Dim dblLength As Double
+Dim dblHeight As Double
+Dim dbl90Deg As Double
+        
+    '' get the point, length, height, and angle from user
+    With ThisDrawing.Utility
+        
+        '' get point, length, height, and angle from user
+        varpnt1 = .GetPoint(, vbCr & "Pick the start point: ")
+        dblLength = .GetDistance(varpnt1, vbCr & "Enter the length: ")
+        dblHeight = .GetDistance(varpnt1, vbCr & "Enter the height: ")
+        dblAngle = .GetAngle(varpnt1, vbCr & "Enter the angle: ")
+        
+        '' calculate remaining rectangle points
+        dbl90Deg = .AngleToReal("90d", acDegrees)
+        varpnt2 = .PolarPoint(varpnt1, dblAngle, dblLength)
+        varpnt3 = .PolarPoint(varpnt2, dblAngle + dbl90Deg, dblHeight)
+        varpnt4 = .PolarPoint(varpnt3, dblAngle + (dbl90Deg * 2), dblLength)
+    End With
+    
+    '' draw the rectangle
+    With ThisDrawing
+        .ModelSpace.AddLine varpnt1, varpnt2
+        .ModelSpace.AddLine varpnt2, varpnt3
+        .ModelSpace.AddLine varpnt3, varpnt4
+        .ModelSpace.AddLine varpnt4, varpnt1
+    End With
+End Sub
+
+Public Sub TestTranslateCoordinates()
+Dim varpnt1 As Variant
+Dim varpnt1Ucs As Variant
+Dim varpnt2 As Variant
+        
+    '' get the point, length, height, and angle from user
+    With ThisDrawing.Utility
+        
+        '' get start point
+        varpnt1 = .GetPoint(, vbCr & "Pick the start point: ")
+        
+        '' convert to UCS for use in the base point rubberband line
+        varpnt1Ucs = .TranslateCoordinates(varpnt1, acWorld, acUCS, False)
+
+        '' get end point
+        varpnt2 = .GetPoint(varpnt1Ucs, vbCr & "Pick the end point: ")
+    End With
+    
+    '' draw the line
+    With ThisDrawing
+        .ModelSpace.AddLine varpnt1, varpnt2
+    End With
+End Sub
+
+Public Sub TestIsURL()
+Dim strInput As String
+    
+    With ThisDrawing.Utility
+        strInput = .GetString(True, vbCr & "Enter a URL: ")
+        If .IsURL(strInput) Then
+            MsgBox "You entered a valid URL"
+        Else
+            MsgBox "That was not a URL"
+        End If
+    End With
+End Sub
+
+Public Sub TestLaunchBrowserDialog()
+Dim strStartUrl As String
+Dim strInput As String
+Dim blnStatus As Boolean
+    
+    strStartUrl = InputBox("Enter a URL", , "http://www.apress.com")
+    
+    With ThisDrawing.Utility
+        If .IsURL(strStartUrl) = False Then
+            MsgBox "You did not enter a valid URL"
+            Exit Sub
+        End If
+            
+        blnStatus = .LaunchBrowserDialog(strInput, _
+                                        "Select a URL", _
+                                        "Select", _
+                                        strStartUrl, _
+                                        "ContractCADDgroup", _
+                                        True)
+        If Not blnStatus Then
+            MsgBox "You cancelled without selecting anything"
+            Exit Sub
+        End If
+        
+        If strStartUrl = strInput Then
+            MsgBox "You selected the original URL"
+        Else
+            MsgBox "You selected: " & strInput
+        End If
+    End With
+End Sub
+
+Public Sub TestGetRemoteFile()
+Dim strUrl As String
+Dim strLocalName As String
+Dim blnStatus As Boolean
+    
+ strUrl = InputBox("Enter a URL of a drawing file")
+    
+    With ThisDrawing.Utility
+        If .IsURL(strUrl) = False Then
+            MsgBox "You did not enter a valid URL"
+            Exit Sub
+        End If
+ 
+        .GetRemoteFile strUrl, strLocalName, True
+        If Err Then
+            MsgBox "Failed to download: " & strUrl & vbCr & Err.Description
+        Else
+            MsgBox "The file was downloaded to: " & strLocalName
+        End If
+    End With
+End Sub 
+
+Public Sub TestIsRemoteFile()
+Dim strOutputURL As String
+Dim strLocalName As String
+         
+    strLocalName = InputBox("Enter the file and path name to check")
+    If strLocalName = "" Then Exit Sub
+    With ThisDrawing.Utility
+        '' check if the local file is from a URL
+        If .IsRemoteFile(strLocalName, strOutputURL) Then
+            MsgBox "This file was downloaded from: " & strOutputURL
+        Else
+            MsgBox "This file was not downloaded from a URL"
+        End If
+    End With
+End Sub

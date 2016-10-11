@@ -1,0 +1,67 @@
+Public WithEvents objApp As AcadApplication
+
+Option Explicit
+Public objApp As New clsApplicationEvents
+
+Public Sub InitializeEvents()
+  Set objApp.objApp = ThisDrawing.Application
+End Sub
+
+Public Sub App_StartMacro()
+  InitializeEvents
+End Sub
+
+Private Sub objApp_SysVarChanged(ByVal SysvarName As String, _
+                                 ByVal newVal As Variant)
+  MsgBox "The System Variable: " & SysvarName & " has changed to " & newVal
+End Sub
+
+Private Sub objApp_NewDrawing()
+  ThisDrawing.SetVariable "SAVETIME", 30
+  MsgBox "The autosave interval is currently set to 30 mins"
+End Sub
+
+Option Explicit
+Public objCurrentLayer As AcadLayer
+Public objPreviousLayer As AcadLayer
+
+Private Sub AcadDocument_BeginCommand(ByVal CommandName As String)
+  Set objPreviousLayer = ThisDrawing.ActiveLayer
+  Select Case CommandName
+    Case "LINE"
+      If Not ThisDrawing.ActiveLayer.Name = "OBJECTS" Then
+        Set objCurrentLayer = ThisDrawing.Layers.Add("OBJECTS")
+        ThisDrawing.ActiveLayer = objCurrentLayer
+      End If
+  End Select
+End Sub
+
+Private Sub AcadDocument_EndCommand(ByVal CommandName As String)
+  Select Case CommandName
+    Case "LINE"
+        ThisDrawing.ActiveLayer = objPreviousLayer
+    End Select
+  Set objCurrentLayer = Nothing
+  Set objPreviousLayer = Nothing
+End Sub
+
+Public WithEvents objLine As AcadLine
+Dim objLine As New clsObjectEvent
+Public Sub InitializeEvent()
+Dim dblStart(2) As Double
+Dim dblEnd(2) As Double
+  dblEnd(0) = 1: dblEnd(1) = 1: dblEnd(2) = 0
+  Set objLine.objLine = ThisDrawing.ModelSpace.AddLine(dblStart, dblEnd)
+End Sub
+
+Private Sub objLine_Modified(ByVal pObject As AutoCAD.IAcadObject)
+Dim varStartPoint As Variant
+Dim varEndPoint As Variant
+
+  varStartPoint = pObject.StartPoint
+  varEndPoint = pObject.EndPoint
+  MsgBox "New line runs from (" & varStartPoint(0) & ", " & _
+    varStartPoint(1) & ", " & varStartPoint(2) & " ) to (" & _
+    varEndPoint(0) & ", " & varEndPoint(1) & ", " & varEndPoint(2) & ")."
+    
+End Sub

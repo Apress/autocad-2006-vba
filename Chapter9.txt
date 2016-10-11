@@ -1,0 +1,788 @@
+Public Sub SetViewpoint(Optional Zoom As Boolean = False, _
+                    Optional X As Double = 1, _
+                    Optional Y As Double = -2, _
+                    Optional Z As Double = 1)
+  
+    Dim dblDirection(2) As Double
+    dblDirection(0) = X:  dblDirection(1) = Y:  dblDirection(2) = Z
+    
+    With ThisDrawing
+        .Preferences.ContourLinesPerSurface = 10    ' set surface countours
+        .ActiveViewport.Direction = dblDirection    ' assign new direction
+        .ActiveViewport = .ActiveViewport           ' force a viewport update
+        If Zoom Then .Application.ZoomAll           ' zoomall if requested
+    End With
+End Sub
+
+Public Sub TestAddBox()
+      Dim varPick As Variant
+      Dim dblLength As Double
+      Dim dblWidth As Double
+      Dim dblHeight As Double
+      Dim dblCenter(2) As Double
+      Dim objEnt As Acad3DSolid
+      
+    '' set the default viewpoint
+    SetViewpoint Zoom:=True
+    
+    '' get input from user
+    With ThisDrawing.Utility
+        .InitializeUserInput 1
+        varPick = .GetPoint(, vbCr & "Pick a corner point: ")
+        .InitializeUserInput 1 + 2 + 4, ""
+        dblLength = .GetDistance(varPick, vbCr & "Enter the X length: ")
+        .InitializeUserInput 1 + 2 + 4, ""
+        dblWidth = .GetDistance(varPick, vbCr & "Enter the Y width: ")
+        .InitializeUserInput 1 + 2 + 4, ""
+        dblHeight = .GetDistance(varPick, vbCr & "Enter the Z height: ")
+    End With
+        
+    '' calculate center point from input
+    dblCenter(0) = varPick(0) + (dblLength / 2)
+    dblCenter(1) = varPick(1) + (dblWidth / 2)
+    dblCenter(2) = varPick(2) + (dblHeight / 2)
+          
+    '' draw the entity
+    Set objEnt = ThisDrawing.ModelSpace.AddBox(dblCenter, dblLength, _
+                                               dblWidth, dblHeight)
+    objEnt.Update
+    ThisDrawing.SendCommand "_shade" & vbCr
+End Sub
+
+Public Sub TestAddCone()
+      Dim varPick As Variant
+      Dim dblRadius As Double
+      Dim dblHeight As Double
+      Dim dblCenter(2) As Double
+      Dim objEnt As Acad3DSolid
+      
+    '' set the default viewpoint
+    SetViewpoint
+    
+    '' get input from user
+    With ThisDrawing.Utility
+        .InitializeUserInput 1
+        varPick = .GetPoint(, vbCr & "Pick the base center point: ")
+        .InitializeUserInput 1 + 2 + 4, ""
+        dblRadius = .GetDistance(varPick, vbCr & "Enter the radius: ")
+        .InitializeUserInput 1 + 2 + 4, ""
+        dblHeight = .GetDistance(varPick, vbCr & "Enter the Z height: ")
+    End With
+        
+    '' calculate center point from input
+    dblCenter(0) = varPick(0)
+    dblCenter(1) = varPick(1)
+    dblCenter(2) = varPick(2) + (dblHeight / 2)
+          
+    '' draw the entity
+    Set objEnt = ThisDrawing.ModelSpace.AddCone(dblCenter, dblRadius, _
+                                                dblHeight)
+    objEnt.Update
+    
+    ThisDrawing.SendCommand "_shade" & vbCr
+End Sub
+
+Public Sub TestAddCylinder()
+      Dim varPick As Variant
+      Dim dblRadius As Double
+      Dim dblHeight As Double
+      Dim dblCenter(2) As Double
+      Dim objEnt As Acad3DSolid
+      
+    '' set the default viewpoint
+    SetViewpoint
+    
+    '' get input from user
+    With ThisDrawing.Utility
+        .InitializeUserInput 1
+        varPick = .GetPoint(, vbCr & "Pick the base center point: ")
+        .InitializeUserInput 1 + 2 + 4, ""
+        dblRadius = .GetDistance(varPick, vbCr & "Enter the radius: ")
+        .InitializeUserInput 1 + 2 + 4, ""
+        dblHeight = .GetDistance(varPick, vbCr & "Enter the Z height: ")
+    End With
+        
+    '' calculate center point from input
+    dblCenter(0) = varPick(0)
+    dblCenter(1) = varPick(1)
+    dblCenter(2) = varPick(2) + (dblHeight / 2)
+          
+    '' draw the entity
+    Set objEnt = ThisDrawing.ModelSpace.AddCylinder(dblCenter, dblRadius, dblHeight)
+    objEnt.Update
+    
+    ThisDrawing.SendCommand "_shade" & vbCr
+End Sub
+
+Public Sub TestAddSphere()
+      Dim varPick As Variant
+      Dim dblRadius As Double
+      Dim objEnt As Acad3DSolid
+      
+    '' set the default viewpoint
+    SetViewpoint
+    
+    '' get input from user
+    With ThisDrawing.Utility
+        .InitializeUserInput 1
+        varPick = .GetPoint(, vbCr & "Pick the center point: ")
+        .InitializeUserInput 1 + 2 + 4, ""
+        dblRadius = .GetDistance(varPick, vbCr & "Enter the radius: ")
+    End With
+        
+    '' draw the entity
+    Set objEnt = ThisDrawing.ModelSpace.AddSphere(varPick, dblRadius)
+    objEnt.Update
+
+    ThisDrawing.SendCommand "_shade" & vbCr
+End Sub
+
+Public Sub TestAddTorus()
+      Dim pntPick As Variant
+      Dim pntRadius As Variant
+      Dim dblRadius As Double
+      Dim dblTube As Double
+      Dim objEnt As Acad3DSolid
+      Dim intI As Integer
+      
+    '' set the default viewpoint
+    SetViewpoint
+    
+    '' get input from user
+    With ThisDrawing.Utility
+        .InitializeUserInput 1
+        pntPick = .GetPoint(, vbCr & "Pick the center point: ")
+        .InitializeUserInput 1
+        pntRadius = .GetPoint(pntPick, vbCr & "Pick a radius point: ")
+        .InitializeUserInput 1 + 2 + 4, ""
+        dblTube = .GetDistance(pntRadius, vbCr & "Enter the tube radius: ")
+    End With
+        
+    '' calculate radius from points
+    For intI = 0 To 2
+        dblRadius = dblRadius + (pntPick(intI) - pntRadius(intI)) ^ 2
+    Next
+    dblRadius = Sqr(dblRadius)
+        
+    '' draw the entity
+    Set objEnt = ThisDrawing.ModelSpace.AddTorus(pntPick, dblRadius, dblTube)
+    objEnt.Update
+    
+    ThisDrawing.SendCommand "_shade" & vbCr
+End Sub
+
+Public Sub TestAddWedge()
+      Dim varPick As Variant
+      Dim dblLength As Double
+      Dim dblWidth As Double
+      Dim dblHeight As Double
+      Dim dblCenter(2) As Double
+      Dim objEnt As Acad3DSolid
+      
+    '' set the default viewpoint
+    SetViewpoint
+    
+    '' get input from user
+    With ThisDrawing.Utility
+        .InitializeUserInput 1
+        varPick = .GetPoint(, vbCr & "Pick a base corner point: ")
+        .InitializeUserInput 1 + 2 + 4, ""
+        dblLength = .GetDistance(varPick, vbCr & "Enter the base X length: ")
+        .InitializeUserInput 1 + 2 + 4, ""
+        dblWidth = .GetDistance(varPick, vbCr & "Enter the base Y width: ")
+        .InitializeUserInput 1 + 2 + 4, ""
+        dblHeight = .GetDistance(varPick, vbCr & "Enter the base Z height: ")
+    End With
+        
+    '' calculate center point from input
+    dblCenter(0) = varPick(0) + (dblLength / 2)
+    dblCenter(1) = varPick(1) + (dblWidth / 2)
+    dblCenter(2) = varPick(2) + (dblHeight / 2)
+          
+    '' draw the entity
+    Set objEnt = ThisDrawing.ModelSpace.AddWedge(dblCenter, dblLength, _
+                                                 dblWidth, dblHeight)
+    objEnt.Update
+    
+    ThisDrawing.SendCommand "_shade" & vbCr
+End Sub
+
+Public Sub TestAddEllipticalCone()
+      Dim varPick As Variant
+      Dim dblXAxis As Double
+      Dim dblYAxis As Double
+      Dim dblHeight As Double
+      Dim dblCenter(2) As Double
+      Dim objEnt As Acad3DSolid
+      
+    '' set the default viewpoint
+    SetViewpoint
+    
+    '' get input from user
+    With ThisDrawing.Utility
+        .InitializeUserInput 1
+        varPick = .GetPoint(, vbCr & "Pick a base center point: ")
+        .InitializeUserInput 1 + 2 + 4, ""
+        dblXAxis = .GetDistance(varPick, vbCr & "Enter the X eccentricity: ")
+        .InitializeUserInput 1 + 2 + 4, ""
+        dblYAxis = .GetDistance(varPick, vbCr & "Enter the Y eccentricity: ")
+        .InitializeUserInput 1 + 2 + 4, ""
+        dblHeight = .GetDistance(varPick, vbCr & "Enter the cone Z height: ")
+    End With
+        
+    '' calculate center point from input
+    dblCenter(0) = varPick(0)
+    dblCenter(1) = varPick(1)
+    dblCenter(2) = varPick(2) + (dblHeight / 2)
+          
+    '' draw the entity
+    Set objEnt = ThisDrawing.ModelSpace.AddEllipticalCone(dblCenter, _
+                                        dblXAxis, dblYAxis, dblHeight)
+    objEnt.Update
+    
+    ThisDrawing.SendCommand "_shade" & vbCr
+End Sub
+
+Public Sub TestAddEllipticalCylinder()
+      Dim varPick As Variant
+      Dim dblXAxis As Double
+      Dim dblYAxis As Double
+      Dim dblHeight As Double
+      Dim dblCenter(2) As Double
+      Dim objEnt As Acad3DSolid
+      
+    '' set the default viewpoint
+    SetViewpoint
+    
+    '' get input from user
+    With ThisDrawing.Utility
+        .InitializeUserInput 1
+        varPick = .GetPoint(, vbCr & "Pick a base center point: ")
+        .InitializeUserInput 1 + 2 + 4, ""
+        dblXAxis = .GetDistance(varPick, vbCr & "Enter the X eccentricity: ")
+        .InitializeUserInput 1 + 2 + 4, ""
+        dblYAxis = .GetDistance(varPick, vbCr & "Enter the Y eccentricity: ")
+        .InitializeUserInput 1 + 2 + 4, ""
+        dblHeight = .GetDistance(varPick, vbCr & _
+                                          "Enter the cylinder Z height: ")
+    End With
+        
+    '' calculate center point from input
+    dblCenter(0) = varPick(0)
+    dblCenter(1) = varPick(1)
+    dblCenter(2) = varPick(2) + (dblHeight / 2)
+          
+    '' draw the entity
+    Set objEnt = ThisDrawing.ModelSpace.AddEllipticalCylinder(dblCenter, _
+                                              dblXAxis, dblYAxis, dblHeight)
+    objEnt.Update
+
+    ThisDrawing.SendCommand "_shade" & vbCr
+End Sub
+
+Public Sub TestAddExtrudedSolid()
+      Dim varCenter As Variant
+      Dim dblRadius As Double
+      Dim dblHeight As Double
+      Dim dblTaper As Double
+      Dim strInput As String
+      Dim varRegions As Variant
+      Dim objEnts() As AcadEntity
+      Dim objEnt As Acad3DSolid
+      Dim varItem As Variant
+
+On Error GoTo Done
+
+    '' get input from user
+    With ThisDrawing.Utility
+        .InitializeUserInput 1
+        varCenter = .GetPoint(, vbCr & "Pick the center point: ")
+        .InitializeUserInput 1 + 2 + 4
+        dblRadius = .GetDistance(varCenter, vbCr & "Indicate the radius: ")
+        .InitializeUserInput 1 + 2 + 4
+        dblHeight = .GetDistance(varCenter, vbCr & _
+                                 "Enter the extrusion height: ")
+        
+        '' get the taper type
+        .InitializeUserInput 1, "Expand Contract None"
+        strInput = .GetKeyword(vbCr & _
+                               "Extrusion taper [Expand/Contract/None]: ")
+        
+        '' if none, taper = 0
+        If strInput = "None" Then
+            dblTaper = 0
+            
+        '' otherwise, get the taper angle
+        Else
+            .InitializeUserInput 1 + 2 + 4
+            dblTaper = .GetReal("Enter the taper angle ( in degrees): ")
+            dblTaper = .AngleToReal(CStr(dblTaper), acDegrees)
+            
+            
+            '' if expanding, negate the angle
+            If strInput = "Expand" Then dblTaper = -dblTaper
+        End If
+    End With
+    
+    '' draw the entities
+    With ThisDrawing.ModelSpace
+    
+        '' draw the outer region (circle)
+        ReDim objEnts(0)
+        Set objEnts(0) = .AddCircle(varCenter, dblRadius)
+        
+        '' create the region
+        varRegions = .AddRegion(objEnts)
+        '' extrude the solid
+        Set objEnt = .AddExtrudedSolid(varRegions(0), dblHeight, dblTaper)
+    
+        '' update the extruded solid
+        objEnt.Update
+    End With
+
+Done:
+    If Err Then MsgBox Err.Description
+    
+    '' delete the temporary geometry
+    For Each varItem In objEnts
+        varItem.Delete
+    Next
+    For Each varItem In varRegions
+        varItem.Delete
+    Next
+    
+    ThisDrawing.SendCommand "_shade" & vbCr
+End Sub
+
+Public Sub TestAddExtrudedSolidAlongPath()
+      Dim objPath As AcadSpline
+      Dim varPick As Variant
+      Dim intI As Integer
+      Dim dblCenter(2) As Double
+      Dim dblRadius As Double
+      Dim objCircle As AcadCircle
+      Dim objEnts() As AcadEntity
+      Dim objShape As Acad3DSolid
+      Dim varRegions As Variant
+      Dim varItem As Variant
+
+    '' set default viewpoint
+    SetViewpoint
+    
+    '' pick path and calculate shape points
+    With ThisDrawing.Utility
+        
+        '' pick the path
+On Error Resume Next
+        .GetEntity objPath, varPick, "Pick a Spline for the path"
+        If Err Then
+            MsgBox "You did not pick a spline"
+            Exit Sub
+        End If
+        objPath.Color = acGreen
+        For intI = 0 To 2
+            dblCenter(intI) = objPath.FitPoints(intI)
+        Next
+        .InitializeUserInput 1 + 2 + 4
+        dblRadius = .GetDistance(dblCenter, vbCr & "Indicate the radius: ")
+    
+    End With
+
+    '' draw the circular region, then extrude along path
+    With ThisDrawing.ModelSpace
+        
+        '' draw the outer region (circle)
+        ReDim objEnts(0)
+        Set objCircle = .AddCircle(dblCenter, dblRadius)
+        objCircle.Normal = objPath.StartTangent
+        Set objEnts(0) = objCircle
+        '' create the region
+        varRegions = .AddRegion(objEnts)
+
+        Set objShape = .AddExtrudedSolidAlongPath(varRegions(0), objPath)
+        objShape.Color = acRed
+    End With
+
+    '' delete the temporary geometry
+    For Each varItem In objEnts:  varItem.Delete:  Next
+    For Each varItem In varRegions:  varItem.Delete:  Next
+
+    ThisDrawing.SendCommand "_shade" & vbCr
+End Sub
+
+Public Sub TestAddRevolvedSolid()
+      Dim objShape As AcadLWPolyline
+      Dim varPick As Variant
+      Dim objEnt As AcadEntity
+      Dim varPnt1 As Variant
+      Dim dblOrigin(2) As Double
+      Dim varVec As Variant
+      Dim dblAngle As Double
+      Dim objEnts() As AcadEntity
+      Dim varRegions As Variant
+      Dim varItem As Variant
+    
+    '' set default viewpoint
+    SetViewpoint
+    
+    '' draw the shape and get rotation from user
+    With ThisDrawing.Utility
+        
+        '' pick a shape
+On Error Resume Next
+        .GetEntity objShape, varPick, "pick a polyline shape"
+        If Err Then
+            MsgBox "You did not pick the correct type of shape"
+            Exit Sub
+        End If
+On Error GoTo Done
+
+        objShape.Closed = True
+        
+        '' add pline to region input array
+        ReDim objEnts(0)
+        Set objEnts(0) = objShape
+        
+        '' get the axis points
+        .InitializeUserInput 1
+        varPnt1 = .GetPoint(, vbLf & "Pick an origin of revolution: ")
+        .InitializeUserInput 1
+        varVec = .GetPoint(dblOrigin, vbLf & _
+            "Indicate the axis of revolution: ")
+        
+        '' get the angle to revolve
+        .InitializeUserInput 1
+        dblAngle = .GetAngle(, vbLf & "Angle to revolve: ")
+    End With
+
+    '' make the region, then revolve it into a solid
+    With ThisDrawing.ModelSpace
+        
+        '' make region from closed pline
+        varRegions = .AddRegion(objEnts)
+        
+        '' revolve solid about axis
+        Set objEnt = .AddRevolvedSolid(varRegions(0), varPnt1, varVec, _
+                dblAngle)
+        objEnt.Color = acRed
+    End With
+
+Done:
+   If Err Then MsgBox Err.Description
+    '' delete the temporary geometry
+    For Each varItem In objEnts:  varItem.Delete:  Next
+    If Not IsEmpty(varRegions) Then
+        For Each varItem In varRegions:  varItem.Delete:  Next
+    End If
+    
+    ThisDrawing.SendCommand "_shade" & vbCr
+End Sub
+
+Public Sub TestBoolean()
+      Dim objFirst As Acad3DSolid
+      Dim objSecond As Acad3DSolid
+      Dim varPick As Variant
+      Dim strOp As String
+        
+On Error Resume Next
+    With ThisDrawing.Utility
+        
+        '' get first solid from user
+        .GetEntity objFirst, varPick, vbCr & "Pick a solid to edit: "
+        If Err Then
+            MsgBox "That is not an Acad3DSolid"
+            Exit Sub
+        End If
+        
+        '' highlight entity
+        objFirst.Highlight True
+        objFirst.Update
+
+        '' get second solid from user
+        .GetEntity objSecond, varPick, vbCr & "Pick a solid to combine: "
+        If Err Then
+            MsgBox "That is not an Acad3DSolid"
+            Exit Sub
+        End If
+                
+        '' exit if they're the same
+        If objFirst Is objSecond Then
+            MsgBox "You must pick 2 different solids"
+            Exit Sub
+        End If
+                
+        '' highlight entity
+        objSecond.Highlight True
+        objSecond.Update
+        
+        '' get boolean operation
+        .InitializeUserInput 1, "Intersect Subtract Union"
+        strOp = .GetKeyword(vbCr & _
+                            "Boolean operation [Intersect/Subtract/Union]: ")
+        
+        '' combine the solids
+        Select Case strOp
+        Case "Intersect": objFirst.Boolean acIntersection, objSecond
+        Case "Subtract": objFirst.Boolean acSubtraction, objSecond
+        Case "Union": objFirst.Boolean acUnion, objSecond
+        End Select
+        
+        '' highlight entity
+        objFirst.Highlight False
+        objFirst.Update
+    End With
+    
+    '' shade the view, and start the interactive orbit command
+    ThisDrawing.SendCommand "_shade" & vbCr & "_orbit" & vbCr
+End Sub
+
+Public Sub TestInterference()
+      Dim objFirst As Acad3DSolid
+      Dim objSecond As Acad3DSolid
+      Dim objNew As Acad3DSolid
+      Dim varPick As Variant
+      Dim varNewPnt As Variant
+    
+On Error Resume Next
+    '' set default viewpoint
+    SetViewpoint
+        
+    With ThisDrawing.Utility
+        
+        '' get first solid from user
+        .GetEntity objFirst, varPick, vbCr & "Pick the first solid: "
+        If Err Then
+            MsgBox "That is not an Acad3DSolid"
+            Exit Sub
+        End If
+        
+        '' highlight entity
+        objFirst.Highlight True
+        objFirst.Update
+
+        '' get second solid from user
+        .GetEntity objSecond, varPick, vbCr & "Pick the second solid: "
+        If Err Then
+            MsgBox "That is not an Acad3DSolid"
+            Exit Sub
+        End If
+                
+        '' exit if they're the same
+        If objFirst Is objSecond Then
+            MsgBox "You must pick 2 different solids"
+            Exit Sub
+        End If
+                
+        '' highlight entity
+        objSecond.Highlight True
+        objSecond.Update
+        
+        '' combine the solids
+        Set objNew = objFirst.CheckInterference(objSecond, True)
+        If objNew Is Nothing Then
+            MsgBox "Those solids don't intersect"
+        Else
+            '' highlight new solid
+            objNew.Highlight True
+            objNew.Color = acWhite
+            objNew.Update
+                        
+            '' move new solid
+            .InitializeUserInput 1
+            varNewPnt = .GetPoint(varPick, vbCr & "Pick a new location: ")
+            objNew.Move varPick, varNewPnt
+        End If
+        
+        '' dehighlight entities
+        objFirst.Highlight False
+        objFirst.Update
+        objSecond.Highlight False
+        objSecond.Update
+    End With
+    
+    '' shade the view, and start the interactive orbit command
+    ThisDrawing.SendCommand "_shade" & vbCr & "_orbit" & vbCr
+End Sub
+
+Public Sub TestSliceSolid()
+      Dim objFirst As Acad3DSolid
+      Dim objSecond As Acad3DSolid
+      Dim objNew As Acad3DSolid
+      Dim varPick As Variant
+      Dim varPnt1 As Variant
+      Dim varPnt2 As Variant
+      Dim varPnt3 As Variant
+      Dim strOp As String
+      Dim blnOp As Boolean
+    
+        
+On Error Resume Next
+    With ThisDrawing.Utility
+        
+        '' get first solid from user
+        .GetEntity objFirst, varPick, vbCr & "Pick a solid to slice: "
+        If Err Then
+            MsgBox "That is not a 3DSolid"
+            Exit Sub
+        End If
+        
+        '' highlight entity
+        objFirst.Highlight True
+        objFirst.Update
+
+        .InitializeUserInput 1
+        varPnt1 = .GetPoint(varPick, vbCr & "Pick first slice point: ")
+        .InitializeUserInput 1
+        varPnt2 = .GetPoint(varPnt1, vbCr & "Pick second slice point: ")
+        .InitializeUserInput 1
+        varPnt3 = .GetPoint(varPnt2, vbCr & "Pick last slice point: ")
+       
+        '' section the solid
+        Set objNew = objFirst.SliceSolid(varPnt1, varPnt2, varPnt3, True)
+        If objNew Is Nothing Then
+            MsgBox "Couldn't slice using those points"
+        Else
+            '' highlight new solid
+            objNew.Highlight False
+            objNew.Color = objNew.Color + 1
+            objNew.Update
+            
+            '' move section region to new location
+            .InitializeUserInput 1
+            varPnt2 = .GetPoint(varPnt1, vbCr & "Pick a new location: ")
+            objNew.Move varPnt1, varPnt2
+        End If
+    End With
+    
+    '' shade the view
+    ThisDrawing.SendCommand "_shade" & vbCr
+End Sub
+
+Public Sub TestSectionSolid()
+      Dim objFirst As Acad3DSolid
+      Dim objSecond As Acad3DSolid
+      Dim objNew As AcadRegion
+      Dim varPick As Variant
+      Dim varPnt1 As Variant
+      Dim varPnt2 As Variant
+      Dim varPnt3 As Variant
+    
+On Error Resume Next
+
+    With ThisDrawing.Utility
+        '' get first solid from user
+        .GetEntity objFirst, varPick, vbCr & "Pick a solid to section: "
+        If Err Then
+            MsgBox "That is not an Acad3DSolid"
+            Exit Sub
+        End If
+        
+        '' highlight entity
+        objFirst.Highlight True
+        objFirst.Update
+
+        .InitializeUserInput 1
+        varPnt1 = .GetPoint(varPick, vbCr & "Pick first section point: ")
+        .InitializeUserInput 1
+        varPnt2 = .GetPoint(varPnt1, vbCr & "Pick second section point: ")
+        .InitializeUserInput 1
+        varPnt3 = .GetPoint(varPnt2, vbCr & "Pick last section point: ")
+        
+        '' section the solid
+        Set objNew = objFirst.SectionSolid(varPnt1, varPnt2, varPnt3)
+        If objNew Is Nothing Then
+            MsgBox "Couldn't section using those points"
+        Else
+            '' highlight new solid
+            objNew.Highlight False
+            objNew.Color = acWhite
+            objNew.Update
+            
+            '' move section region to new location
+            .InitializeUserInput 1
+            varPnt2 = .GetPoint(varPnt1, vbCr & "Pick a new location: ")
+            objNew.Move varPnt1, varPnt2
+        End If
+        
+        '' dehighlight entities
+        objFirst.Highlight False
+        objFirst.Update
+    End With
+    
+    '' shade the view
+    ThisDrawing.SendCommand "_shade" & vbCr
+End Sub
+
+Public Sub TestMassProperties()
+      Dim objEnt As Acad3DSolid
+      Dim varPick As Variant
+      Dim strMassProperties As String
+      Dim varProperty As Variant
+      Dim intI As Integer
+
+On Error Resume Next
+    '' let user pick a solid
+    With ThisDrawing.Utility
+        .GetEntity objEnt, varPick, vbCr & "Pick a solid: "
+        If Err Then
+            MsgBox "That is not an Acad3DSolid"
+            Exit Sub
+        End If
+    End With
+    
+    '' format mass properties
+    With objEnt
+        strMassProperties = "Volume: "
+        strMassProperties = strMassProperties & vbCr & "    " & .Volume
+        strMassProperties = strMassProperties & vbCr & vbCr & _
+                            "Center Of Gravity: "
+        For Each varProperty In .Centroid
+            strMassProperties = strMassProperties & vbCr & "    "_
+                                 & varProperty
+        Next
+        strMassProperties = strMassProperties & vbCr & vbCr & _
+                            "Moment Of Inertia: "
+        For Each varProperty In .MomentOfInertia
+            strMassProperties = strMassProperties & vbCr & "    " & _
+                                varProperty
+        Next
+        strMassProperties = strMassProperties & vbCr & vbCr & _
+                            "Product Of Inertia: "
+        For Each varProperty In .ProductOfInertia
+            strMassProperties = strMassProperties & vbCr & "    " & _
+                                varProperty
+        Next
+        strMassProperties = strMassProperties & vbCr & vbCr & _
+                            "Principal Moments: "
+        For Each varProperty In .PrincipalMoments
+            strMassProperties = strMassProperties & vbCr & "    " & _
+                                varProperty
+        Next
+        strMassProperties = strMassProperties & vbCr & vbCr & _
+                            "Radii Of Gyration: "
+        For Each varProperty In .RadiiOfGyration
+            strMassProperties = strMassProperties & vbCr & "    " & _
+                                varProperty
+        Next
+        strMassProperties = strMassProperties & vbCr & vbCr & _
+                            "Principal Directions: "
+        For intI = 0 To UBound(.PrincipalDirections) / 3
+            strMassProperties = strMassProperties & vbCr & "    (" & _
+                           .PrincipalDirections((intI - 1) * 3) & ", " & _
+                           .PrincipalDirections((intI - 1) * 3 + 1) & "," & _
+                           .PrincipalDirections((intI - 1) * 3 + 2) & ")"
+        Next
+        
+    End With
+    
+    '' highlight entity
+    objEnt.Highlight True
+    objEnt.Update
+    
+    '' display properties
+    MsgBox strMassProperties, , "Mass Properties"
+    
+    '' dehighlight entity
+    objEnt.Highlight False
+    objEnt.Update
+End Sub

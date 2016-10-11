@@ -1,0 +1,70 @@
+Public Sub TestSummaryInfoObject()
+  With ThisDrawing.SummaryInfo
+    .Author = "Joe Sutphin"
+    .RevisionNumber = "3"
+    .Subject = "The Flying Delorean Project"
+    .Title = "Flux Capacitor"
+    .AddCustomInfo "ItemNo", "11051955"
+  End With
+End Sub
+
+ThisDrawing.SummaryInfo.RevisionNumber = “1”
+
+ThisDrawing.SummaryInfo.RevisionNumber = _
+  Chr(Asc (ThisDrawing.SummaryInfo.RevisionNumber) + 1)
+
+Public Sub TestAddCustomInfo()
+Dim Key0 As String
+Dim Value0 As String
+
+  Key0 = "Test1Key": Value0 = "Test1Value"
+  ThisDrawing.SummaryInfo. AddCustomInfo Key0, Value0
+End Sub
+
+Public Sub TestGetCustomInfo()
+Dim Key0 As String
+Dim Value0 As String
+
+  ThisDrawing.SummaryInfo. GetCustomByKey Key0, Value0
+End Sub
+
+Public Sub TestGetCustomByIndex()
+Dim Index As Long
+Dim CustomKey As String
+Dim CustomValue As String
+  
+  'iterate all custom properties of drawing
+  For Index = 0 To ThisDrawing.SummaryInfo.NumCustomInfo - 1
+    ThisDrawing.SummaryInfo.GetCustomByIndex Index, CustomKey, CustomValue
+    MsgBox "Key = " & CustomKey & vbCrLf & _
+           "Value = " & CustomValue
+  Next Index
+End Sub
+
+Public Sub TestRemoveCustomInfoByKey()
+  ThisDrawing.SummaryInfo. RemoveCustomByKey “Key0”
+End Sub
+
+Public Sub TestRemoveCustomInfoByIndex()
+  ThisDrawing.SummaryInfo. RemoveCustomByIndex 2
+End Sub
+
+Public Sub TestSetCustomInfo()
+Dim Value0 As String
+
+      Value0 = “NewValue”
+  ThisDrawing.SummaryInfo. SetCustomByKey Key0, Value0
+End Sub
+
+Public Sub TestSetCustomByIndex()
+Dim Index As Long
+Dim CustomKey As String
+Dim CustomValue As String
+  
+  'iterate all custom properties of drawing
+  For Index = 0 To ThisDrawing.SummaryInfo.NumCustomInfo - 1
+    ThisDrawing.SummaryInfo.GetCustomByIndex Index, CustomKey, CustomValue
+    MsgBox "Key = " & CustomKey & vbCrLf & _
+           "Value = " & CustomValue
+  Next Index
+End Sub

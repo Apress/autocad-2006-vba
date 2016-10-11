@@ -1,0 +1,144 @@
+Public Sub MyMacro()
+Dim Count As Integer
+Dim NumericString As String
+
+  Count = 100
+  NumericString = "555"
+  
+  MsgBox "Integer: " & Count & vbCrLf & _
+         "String: " & NumericString
+         
+  Count = NumericString
+  
+  MsgBox "Integer: " & Count
+End Sub
+
+Public Sub IterateLayers()
+Dim Layer As AcadLayer
+  For Each Layer In ThisDrawing.Layers
+    Debug.Print Layer.Name
+  Next Layer
+End Sub
+
+Select Case UCase(ColorName)
+  Case "RED"
+    Layer.Color = acRed
+    
+  Case "YELLOW"
+    Layer.Color = acYellow
+    
+  Case "GREEN"
+    Layer.Color = acGreen
+    
+  Case "CYAN"
+    Layer.Color = acCyan
+    
+  Case "BLUE"
+    Layer.Color = acBlue
+    
+  Case "MAGENTA"
+    Layer.Color = acMagenta
+    
+  Case "WHITE"
+    Layer.Color = acWhite
+    
+  Case Else
+    If CInt(ColorName) > 0 And CInt(ColorName) < 256 Then
+      Layer.Color = CInt(ColorName)
+      
+      Else
+        MsgBox UCase(ColorName) & " is an invalid color name", _
+               vbCritical, "Invalid Color Selected"
+    End If
+End Select
+
+Select Case Ucase(ColorName)
+  Case RED: Layer.Color = acRed
+  Case BLUE: Layer.Color = acBlue
+End Select
+
+Do While Index - 1 < Length
+  Character = Asc(Mid(Name, Index, 1))
+  Select Case Character
+    Case 36, 45, 48 To 57, 65 To 90, 95
+      IsOK = True
+    Case Else
+      IsOK = False
+      Exit Sub
+  End Select
+  Index = Index + 1
+Loop
+
+Do While Not Recordset.EOF
+  Debug.Print Recordset.Fields("layername").Value
+  Recordset.MoveNext
+Loop
+
+Do Until Recordset.EOF
+  Debug.Print Recordset.Fields("layername").Value
+  Recordset.MoveNext
+Loop
+
+Public Sub DisplayLayers()
+  Dim Layer As AcadLayer
+     
+  For Each Layer In ThisDrawing.Layers
+    Debug.Print Layer.Name
+  Next Layer
+End Sub
+
+Public Sub WhatColor()
+Dim Layer As AcadLayer
+Dim Answer As String
+
+  For Each Layer In ThisDrawing.Layers
+    Answer = InputBox("Enter color name: ")
+  
+    'user pressed cancel
+    If Answer = "" Then Exit Sub
+  
+    Select Case UCase(Answer)
+      Case "RED"
+        Layer.Color = acRed
+    
+      Case "YELLOW"
+        Layer.Color = acYellow
+    
+      Case "GREEN"
+        Layer.Color = acGreen
+    
+      Case "CYAN"
+        Layer.Color = acCyan
+    
+      Case "BLUE"
+        Layer.Color = acBlue
+    
+      Case "MAGENTA"
+        Layer.Color = acMagenta
+      
+      Case "WHITE"
+        Layer.Color = acWhite
+    
+      Case Else
+        If CInt(Answer) > 0 And CInt(Answer) < 256 Then
+          Layer.Color = CInt(Answer)
+      
+          Else
+            MsgBox UCase(Answer) & " is an invalid color name", _
+                 vbCritical, "Invalid Color Selected"
+        End If
+    End Select
+  Next Layer
+End Sub
+
+Dim mylayer As AcadLayer
+mylayer = ThisDrawing.ActiveLayer
+
+With mylayer
+  .Color = acBlue
+  .Linetype = "continuous"
+  .Lineweight = acLnWtByLwDefault
+  .Freeze = False
+  .LayerOn = True
+  .Lock = False
+End With
